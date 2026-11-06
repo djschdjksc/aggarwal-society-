@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Dashboard - Naujwan Aggarwal Welfare Society</title>
+  
+  <!-- Fonts & CDN Icons (Ant Design vibe + FontAwesome 6) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    :root {
+      --ant-primary: #1677ff;
+      --ant-primary-hover: #4096ff;
+      --ant-primary-bg: #e6f4ff;
+      --ant-success: #52c41a;
+      --ant-success-bg: #f6ffed;
+      --ant-success-border: #b7eb8f;
+      --ant-warning: #faad14;
+      --ant-warning-bg: #fffbe6;
+      --ant-warning-border: #ffe58f;
+      --ant-danger: #ff4d4f;
+      --ant-danger-bg: #fff2f0;
+      --ant-border: #f0f0f0;
+      --ant-border-secondary: #d9d9d9;
+      --ant-bg-layout: #f5f7fa;
+      --ant-text: #1f1f1f;
+      --ant-text-secondary: #8c8c8c;
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: var(--ant-bg-layout);
+      color: var(--ant-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navbar */
+    .admin-nav {
+      background: #ffffff;
+      border-bottom: 1px solid var(--ant-border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: #fff1f0;
+      color: #cf1322;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      border: 1px solid #ffa39e;
+    }
+
+    .brand-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1f1f1f;
+      line-height: 1.2;
+    }
+
+    .brand-subtitle {
+      font-size: 0.78rem;
+      color: var(--ant-text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-owner {
+      background: #fff7e6;
+      color: #d46b08;
+      border: 1px solid #ffd591;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Ant Design Buttons */
+    .ant-btn {
+      height: 34px;
+      padding: 0 14px;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      border: 1px solid var(--ant-border-secondary);
+      background: #ffffff;
+      color: var(--ant-text);
+      transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+      text-decoration: none;
+    }
+
+    .ant-btn:hover {
+      border-color: var(--ant-primary);
+      color: var(--ant-primary);
+    }
+
+    .ant-btn-primary {
+      background: var(--ant-primary);
+      border-color: var(--ant-primary);
+      color: #ffffff;
+    }
+
+    .ant-btn-primary:hover {
+      background: var(--ant-primary-hover);
+      border-color: var(--ant-primary-hover);
+      color: #ffffff;
+    }
+
+    .ant-btn-danger {
+      color: var(--ant-danger);
+      border-color: #ffa39e;
+      background: #fff1f0;
+    }
+
+    .ant-btn-danger:hover {
+      background: #ff4d4f;
+      color: #ffffff;
+    }
+
+    .ant-btn-sm {
+      height: 28px;
+      padding: 0 10px;
+      font-size: 0.78rem;
+    }
+
+    /* Main Container */
+    .admin-container {
+      max-width: 1380px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    /* Metric Cards Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 18px 20px;
+      border: 1px solid var(--ant-border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .metric-info h4 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--ant-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .metric-val {
+      font-size: 1.65rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1;
+    }
+
+    .metric-sub {
+      font-size: 0.75rem;
+      margin-top: 6px;
+      color: var(--ant-text-secondary);
+    }
+
+    .metric-icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+    }
+
+    .icon-blue { background: #e6f4ff; color: #1677ff; }
+    .icon-green { background: #f6ffed; color: #52c41a; }
+    .icon-gold { background: #fffbe6; color: #faad14; }
+    .icon-purple { background: #f9f0ff; color: #722ed1; }
+
+    /* Main Panel Card */
+    .panel-card {
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid var(--ant-border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--ant-border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ant-input {
+      height: 34px;
+      padding: 4px 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--ant-border-secondary);
+      font-size: 0.85rem;
+      color: var(--ant-text);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .ant-input:focus {
+      border-color: var(--ant-primary);
+      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.2);
+    }
+
+    .ant-select {
+      height: 34px;
+      padding: 4px 10px;
+      border-radius: var(--radius);
+      border: 1px solid var(--ant-border-secondary);
+      font-size: 0.85rem;
+      background: #ffffff;
+      color: var(--ant-text);
+      cursor: pointer;
+    }
+
+    /* Ant Design Styled Table */
+    .table-responsive {
+      overflow-x: auto;
+      width: 100%;
+    }
+
+    table.ant-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
+    table.ant-table th {
+      background: #fafafa;
+      color: #595959;
+      font-weight: 600;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--ant-border);
+      white-space: nowrap;
+    }
+
+    table.ant-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--ant-border);
+      color: var(--ant-text);
+      vertical-align: middle;
+    }
+
+    table.ant-table tr:hover td {
+      background: #fafafa;
+    }
+
+    /* Ant Design Tags */
+    .ant-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 4px;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+
+    .tag-completed {
+      background: var(--ant-success-bg);
+      color: #389e0d;
+      border: 1px solid var(--ant-success-border);
+    }
+
+    .tag-pending {
+      background: var(--ant-warning-bg);
+      color: #d46b08;
+      border: 1px solid var(--ant-warning-border);
+    }
+
+    .tag-id {
+      background: #f0f5ff;
+      color: #1d39c4;
+      border: 1px solid #adc6ff;
+      font-family: monospace;
+      font-size: 0.8rem;
+    }
+
+    .action-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    /* Empty state */
+    .empty-state {
+      padding: 48px 20px;
+      text-align: center;
+      color: var(--ant-text-secondary);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      color: #d9d9d9;
+      margin-bottom: 12px;
+    }
+
+    /* Modal / Dialog */
+    .ant-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .ant-modal {
+      background: #ffffff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 580px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      animation: antModalFade 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+    }
+
+    @keyframes antModalFade {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .ant-modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--ant-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ant-modal-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1f1f1f;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ant-modal-close {
+      border: none;
+      background: transparent;
+      font-size: 1.1rem;
+      cursor: pointer;
+      color: var(--ant-text-secondary);
+    }
+
+    .ant-modal-body {
+      padding: 20px 24px;
+      overflow-y: auto;
+      font-size: 0.88rem;
+    }
+
+    .ant-modal-footer {
+      padding: 12px 24px;
+      border-top: 1px solid var(--ant-border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      background: #fafafa;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+    }
+
+    /* Detail Grid in Modal */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 10px 16px;
+      margin-bottom: 16px;
+    }
+
+    .detail-label {
+      font-weight: 600;
+      color: var(--ant-text-secondary);
+    }
+
+    .detail-val {
+      color: #0f172a;
+      font-weight: 500;
+    }
+
+    /* Password Login Screen */
+    .login-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: #ffffff;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 400px;
+      padding: 32px 28px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+
+    .login-logo {
+      width: 60px;
+      height: 60px;
+      background: #e6f4ff;
+      color: #1677ff;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin-bottom: 16px;
+    }
+
+    .login-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+
+    .login-sub {
+      font-size: 0.82rem;
+      color: var(--ant-text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .login-input {
+      width: 100%;
+      height: 42px;
+      padding: 0 14px;
+      border-radius: 8px;
+      border: 1px solid var(--ant-border-secondary);
+      font-size: 0.95rem;
+      margin-bottom: 16px;
+      outline: none;
+    }
+
+    .login-input:focus {
+      border-color: var(--ant-primary);
+      box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.2);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Print View */
+    @media print {
+      body { background: white; }
+      .admin-nav, .panel-header, .metrics-grid, .action-cell, .nav-actions, .no-print {
+        display: none !important;
+      }
+      .panel-card { border: none; box-shadow: none; }
+      table.ant-table th, table.ant-table td {
+        border-color: #e2e8f0;
+        padding: 8px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Password Protection Modal (Owner Only) -->
+  <div id="login-overlay" class="login-container">
+    <div class="login-card">
+      <div class="login-logo">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <h2 class="login-title">Owner Access Portal</h2>
+      <p class="login-sub">Naujwan Aggarwal Welfare Society (Reg.)<br>Please enter your owner password to continue.</p>
+      
+      <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+        <input type="password" id="adminPasswordInput" class="login-input" placeholder="Enter Owner Password..." required autofocus>
+        <div id="login-error" style="color: #ff4d4f; font-size: 0.82rem; margin-bottom: 14px; display: none;">
+          <i class="fa-solid fa-circle-exclamation"></i> Incorrect password. Please try again.
+        </div>
+        <button type="submit" class="ant-btn ant-btn-primary" style="width: 100%; height: 42px; font-size: 0.95rem;">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i> Login to Dashboard
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Dashboard Top Navbar -->
+  <header class="admin-nav">
+    <div class="brand-box">
+      <div class="brand-icon">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <div>
+        <div class="brand-title">Naujwan Aggarwal Welfare Society</div>
+        <div class="brand-subtitle">
+          <span>Owner Admin & Reports Portal</span>
+          <span class="badge-owner">👑 Owner Private</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <a href="/" target="_blank" class="ant-btn">
+        <i class="fa-solid fa-globe"></i> Open Registration Portal
+      </a>
+      <button type="button" class="ant-btn" onclick="loadDashboardData()">
+        <i class="fa-solid fa-arrows-rotate"></i> Refresh
+      </button>
+      <button type="button" class="ant-btn ant-btn-danger" onclick="adminLogout()">
+        <i class="fa-solid fa-power-off"></i> Logout
+      </button>
+    </div>
+  </header>
+
+  <!-- 3. Main Dashboard Body -->
+  <main class="admin-container">
+    
+    <!-- Metric Overview Cards -->
+    <section class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-info">
+          <h4>Total Members</h4>
+          <div class="metric-val" id="stat-total-members">0</div>
+          <div class="metric-sub">Registered Applications</div>
+        </div>
+        <div class="metric-icon-wrap icon-blue">
+          <i class="fa-solid fa-users"></i>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-info">
+          <h4>Total Funds Collected</h4>
+          <div class="metric-val" style="color: #16a34a;" id="stat-total-funds">₹ 0</div>
+          <div class="metric-sub">Verified Contributions</div>
+        </div>
+        <div class="metric-icon-wrap icon-green">
+          <i class="fa-solid fa-indian-rupee-sign"></i>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-info">
+          <h4>Completed / Verified</h4>
+          <div class="metric-val" style="color: #2563eb;" id="stat-completed-members">0</div>
+          <div class="metric-sub">Official Active Members</div>
+        </div>
+        <div class="metric-icon-wrap icon-blue">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-info">
+          <h4>Pending Verifications</h4>
+          <div class="metric-val" style="color: #d97706;" id="stat-pending-members">0</div>
+          <div class="metric-sub">Awaiting Payment Check</div>
+        </div>
+        <div class="metric-icon-wrap icon-gold">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-info">
+          <h4>Storage Engine</h4>
+          <div class="metric-val" style="font-size: 1.1rem; color: #475569;" id="stat-storage-mode">Checking...</div>
+          <div class="metric-sub" id="stat-storage-sub">Database Status</div>
+        </div>
+        <div class="metric-icon-wrap icon-purple">
+          <i class="fa-solid fa-database"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- Data Table & Controls Panel -->
+    <section class="panel-card">
+      <div class="panel-header">
+        <div class="filter-group">
+          <!-- Search Input -->
+          <div style="position: relative;">
+            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 10px; color: #94a3b8; font-size: 0.8rem;"></i>
+            <input type="text" id="filter-search" class="ant-input" placeholder="Search by Name, Mobile, ID..." style="padding-left: 28px; width: 260px;" oninput="applyFilters()">
+          </div>
+
+          <!-- Status Dropdown -->
+          <select id="filter-status" class="ant-select" onchange="applyFilters()">
+            <option value="All">All Payment Statuses</option>
+            <option value="Completed">Completed (Verified)</option>
+            <option value="Pending">Pending Payments</option>
+          </select>
+
+          <!-- Constituency Dropdown -->
+          <select id="filter-constituency" class="ant-select" onchange="applyFilters()">
+            <option value="All">All Constituencies</option>
+            <option value="Jalandhar North">Jalandhar North</option>
+            <option value="Jalandhar Central">Jalandhar Central</option>
+            <option value="Jalandhar West">Jalandhar West</option>
+            <option value="Jalandhar Cantt">Jalandhar Cantt</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <!-- Export & Print Actions -->
+        <div class="filter-group">
+          <button type="button" class="ant-btn" onclick="exportToCsv()">
+            <i class="fa-solid fa-file-excel" style="color: #107c41;"></i> Export to CSV
+          </button>
+          <button type="button" class="ant-btn" onclick="window.print()">
+            <i class="fa-solid fa-print"></i> Print Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Body -->
+      <div class="table-responsive">
+        <table class="ant-table">
+          <thead>
+            <tr>
+              <th>Member ID</th>
+              <th>Full Name</th>
+              <th>Father / Husband</th>
+              <th>Mobile No.</th>
+              <th>Constituency</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Registered On</th>
+              <th class="action-cell">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="members-tbody">
+            <tr>
+              <td colspan="9" style="text-align: center; padding: 30px;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: #1677ff;"></i>
+                <div style="margin-top: 8px; color: #8c8c8c;">Loading members data...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- 4. Member Details Modal -->
+  <div id="modal-member-details" class="ant-modal-overlay hidden">
+    <div class="ant-modal">
+      <div class="ant-modal-header">
+        <div class="ant-modal-title">
+          <i class="fa-solid fa-id-card-clip" style="color: #1677ff;"></i>
+          <span>Member Full Information</span>
+        </div>
+        <button type="button" class="ant-modal-close" onclick="closeDetailsModal()">&times;</button>
+      </div>
+      <div class="ant-modal-body" id="modal-details-content">
+        <!-- Rendered via JS -->
+      </div>
+      <div class="ant-modal-footer">
+        <button type="button" class="ant-btn" onclick="closeDetailsModal()">Close</button>
+        <button type="button" class="ant-btn ant-btn-primary" id="btn-modal-print-card" onclick="printCardFromDetails()">
+          <i class="fa-solid fa-id-card"></i> Print Official ID Card
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Verify / Edit Payment Modal -->
+  <div id="modal-payment-verify" class="ant-modal-overlay hidden">
+    <div class="ant-modal" style="max-width: 440px;">
+      <div class="ant-modal-header">
+        <div class="ant-modal-title">
+          <i class="fa-solid fa-circle-check" style="color: #52c41a;"></i>
+          <span>Verify / Update Payment</span>
+        </div>
+        <button type="button" class="ant-modal-close" onclick="closePaymentModal()">&times;</button>
+      </div>
+      <div class="ant-modal-body">
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px;">Member ID & Name</label>
+          <div id="pay-modal-member-name" style="font-weight: 700; color: #1e3a8a;">-</div>
+        </div>
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px;">Payment Status *</label>
+          <select id="pay-modal-status" class="ant-select" style="width: 100%;">
+            <option value="Completed">Completed (Verified)</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px;">Amount (₹) *</label>
+          <input type="number" id="pay-modal-amount" class="ant-input" value="1100" style="width: 100%;">
+        </div>
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px;">Transaction UTR / Ref *</label>
+          <input type="text" id="pay-modal-utr" class="ant-input" placeholder="e.g. UPI202611059988" style="width: 100%;">
+        </div>
+      </div>
+      <div class="ant-modal-footer">
+        <button type="button" class="ant-btn" onclick="closePaymentModal()">Cancel</button>
+        <button type="button" class="ant-btn ant-btn-primary" onclick="submitPaymentUpdate()">
+          <i class="fa-solid fa-check"></i> Save & Verify
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Offscreen canvas for ID Card drawing -->
+  <canvas id="admin-card-canvas" width="1024" height="438" style="display: none;"></canvas>
+
+  <script>
+    let currentAdminToken = localStorage.getItem('NAWS_ADMIN_TOKEN') || '';
+    let allMembers = [];
+    let activeMemberForAction = null;
+
+    // Check token on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      if (currentAdminToken) {
+        document.getElementById('login-overlay').classList.add('hidden');
+        loadDashboardData();
+      } else {
+        document.getElementById('login-overlay').classList.remove('hidden');
+      }
+    });
+
+    // Handle Admin Login
+    function handleAdminLogin(e) {
+      e.preventDefault();
+      const pwd = document.getElementById('adminPasswordInput').value.trim();
+      const errBox = document.getElementById('login-error');
+
+      fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.token) {
+          currentAdminToken = data.token;
+          localStorage.setItem('NAWS_ADMIN_TOKEN', data.token);
+          document.getElementById('login-overlay').classList.add('hidden');
+          errBox.style.display = 'none';
+          loadDashboardData();
+        } else {
+          errBox.style.display = 'block';
+        }
+      })
+      .catch(err => {
+        alert('Server error: ' + err.message);
+      });
+    }
+
+    // Admin Logout
+    function adminLogout() {
+      if (confirm('Are you sure you want to log out of the Owner Dashboard?')) {
+        localStorage.removeItem('NAWS_ADMIN_TOKEN');
+        currentAdminToken = '';
+        location.reload();
+      }
+    }
+
+    // Fetch Stats and Members
+    function loadDashboardData() {
+      // 1. Load Stats
+      fetch('/api/admin/stats', {
+        headers: { 'x-admin-token': currentAdminToken }
+      })
+      .then(res => {
+        if (res.status === 401) {
+          localStorage.removeItem('NAWS_ADMIN_TOKEN');
+          document.getElementById('login-overlay').classList.remove('hidden');
+          throw new Error('Unauthorized');
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data.success && data.stats) {
+          const s = data.stats;
+          document.getElementById('stat-total-members').textContent = s.totalMembers;
+          document.getElementById('stat-total-funds').textContent = '₹ ' + (s.totalFundsCollected || 0).toLocaleString('en-IN');
+          document.getElementById('stat-completed-members').textContent = s.completedPayments;
+          document.getElementById('stat-pending-members').textContent = s.pendingPayments;
+          document.getElementById('stat-storage-mode').textContent = s.storageMode;
+          document.getElementById('stat-storage-sub').textContent = s.storageMode.includes('MongoDB') ? 'Cloud MongoDB Atlas' : 'Local JSON Storage';
+        }
+      })
+      .catch(err => console.warn(err));
+
+      // 2. Load Members List
+      fetch('/api/admin/members', {
+        headers: { 'x-admin-token': currentAdminToken }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          allMembers = data.members || [];
+          applyFilters();
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching members:', err);
+      });
+    }
+
+    // Apply Client-Side Filter & Search
+    function applyFilters() {
+      const q = document.getElementById('filter-search').value.toLowerCase().trim();
+      const status = document.getElementById('filter-status').value;
+      const consti = document.getElementById('filter-constituency').value;
+
+      const filtered = allMembers.filter(m => {
+        const matchesQ = !q || 
+          (m.fullName && m.fullName.toLowerCase().includes(q)) ||
+          (m.memberId && m.memberId.toString().toLowerCase().includes(q)) ||
+          (m.mobileNo && m.mobileNo.includes(q)) ||
+          (m.fatherHusbandName && m.fatherHusbandName.toLowerCase().includes(q));
+
+        const matchesStatus = (status === 'All') || (m.paymentStatus === status);
+        const matchesConsti = (consti === 'All') || (m.constituency === consti);
+
+        return matchesQ && matchesStatus && matchesConsti;
+      });
+
+      renderTable(filtered);
+    }
+
+    // Render Table Rows
+    function renderTable(members) {
+      const tbody = document.getElementById('members-tbody');
+      if (!members || members.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <i class="fa-regular fa-folder-open"></i>
+                <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 4px;">No Members Found</div>
+                <div style="font-size: 0.82rem;">No member records match the selected filters.</div>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = members.map(m => {
+        const isCompleted = m.paymentStatus === 'Completed';
+        const statusBadge = isCompleted
+          ? `<span class="ant-tag tag-completed"><i class="fa-solid fa-circle-check"></i> Completed</span>`
+          : `<span class="ant-tag tag-pending"><i class="fa-solid fa-clock"></i> Pending</span>`;
+
+        const rawId = (m.memberId || '').toString();
+        const formattedId = rawId.toUpperCase().startsWith('NAWS-') ? rawId.toUpperCase() : ('NAWS-' + rawId.padStart(4, '0'));
+        const regDate = m.joiningDate || (m.createdAt ? new Date(m.createdAt).toLocaleDateString('en-GB') : '-');
+
+        return `
+          <tr>
+            <td><span class="ant-tag tag-id">${formattedId}</span></td>
+            <td>
+              <div style="font-weight: 700; color: #0f172a;">${escapeHtml(m.fullName || '-')}</div>
+              <div style="font-size: 0.75rem; color: #64748b;">${m.sex || 'Male'}, ${m.age ? m.age + ' Yrs' : ''}</div>
+            </td>
+            <td>${escapeHtml(m.fatherHusbandName || '-')}</td>
+            <td>
+              <div><a href="tel:${m.mobileNo}" style="color: #1677ff; text-decoration: none; font-weight: 600;"><i class="fa-solid fa-phone" style="font-size: 0.72rem;"></i> ${formatPhone(m.mobileNo)}</a></div>
+              ${m.whatsappNo ? `<div style="font-size: 0.74rem; color: #16a34a;"><i class="fa-brands fa-whatsapp"></i> ${formatPhone(m.whatsappNo)}</div>` : ''}
+            </td>
+            <td>${escapeHtml(m.constituency || '-')}</td>
+            <td style="font-weight: 700;">₹ ${Number(m.amountPaid || 1100).toLocaleString('en-IN')}</td>
+            <td>${statusBadge}</td>
+            <td style="font-size: 0.78rem; color: #64748b;">${regDate}</td>
+            <td>
+              <div class="action-cell">
+                <button type="button" class="ant-btn ant-btn-sm" title="View Full Details" onclick="viewMemberDetails('${m.memberId}')">
+                  <i class="fa-solid fa-eye"></i> View
+                </button>
+                <button type="button" class="ant-btn ant-btn-sm" title="Verify Payment" onclick="openPaymentModal('${m.memberId}')">
+                  <i class="fa-solid fa-receipt"></i> Verify
+                </button>
+                <button type="button" class="ant-btn ant-btn-sm ant-btn-primary" title="Print ID Card" onclick="printCardDirectly('${m.memberId}')">
+                  <i class="fa-solid fa-id-card"></i> Card
+                </button>
+                <button type="button" class="ant-btn ant-btn-sm ant-btn-danger" title="Delete Member" onclick="deleteMember('${m.memberId}', '${escapeHtml(m.fullName)}')">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Modal: View Member Details
+    function viewMemberDetails(memberId) {
+      const m = allMembers.find(item => item.memberId === memberId);
+      if (!m) return;
+      activeMemberForAction = m;
+
+      const rawId = (m.memberId || '').toString();
+      const formattedId = rawId.toUpperCase().startsWith('NAWS-') ? rawId.toUpperCase() : ('NAWS-' + rawId.padStart(4, '0'));
+
+      const html = `
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
+          <div style="font-size: 1.1rem; font-weight: 800; color: #1e3a8a;">${escapeHtml(m.fullName)}</div>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
+            Membership No: <strong style="color: #b45309;">${formattedId}</strong> | Receipt No: <strong>${m.receiptNo || '-'}</strong>
+          </div>
+        </div>
+
+        <h4 style="font-size: 0.85rem; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 12px;">
+          <i class="fa-solid fa-user"></i> Personal & Contact Information
+        </h4>
+        <div class="detail-grid">
+          <div class="detail-label">Father / Husband:</div>
+          <div class="detail-val">${escapeHtml(m.fatherHusbandName || '-')}</div>
+
+          <div class="detail-label">Gender & Age:</div>
+          <div class="detail-val">${m.sex || '-'} | DOB: ${m.dob || '-'} (${m.age ? m.age + ' Yrs' : '-'})</div>
+
+          <div class="detail-label">Mobile Number:</div>
+          <div class="detail-val">${formatPhone(m.mobileNo)}</div>
+
+          <div class="detail-label">WhatsApp Number:</div>
+          <div class="detail-val">${m.whatsappNo ? formatPhone(m.whatsappNo) : '-'}</div>
+
+          <div class="detail-label">Email ID:</div>
+          <div class="detail-val">${m.email || '-'}</div>
+
+          <div class="detail-label">Constituency:</div>
+          <div class="detail-val"><strong>${escapeHtml(m.constituency || '-')}</strong> (Pincode: ${m.pincode || '-'})</div>
+
+          <div class="detail-label">Full Address:</div>
+          <div class="detail-val">${escapeHtml(m.address || [m.houseNo, m.streetNo, m.roadName, m.landmark].filter(Boolean).join(', ') || '-')}</div>
+        </div>
+
+        <h4 style="font-size: 0.85rem; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 12px; margin-top: 18px;">
+          <i class="fa-solid fa-people-roof"></i> Family & Profession
+        </h4>
+        <div class="detail-grid">
+          <div class="detail-label">Marital Status:</div>
+          <div class="detail-val">${m.maritalStatus || 'Un-married'}</div>
+
+          ${m.spouseName ? `
+            <div class="detail-label">Spouse Name:</div>
+            <div class="detail-val">${escapeHtml(m.spouseName)} (DOB: ${m.spouseDob || '-'})</div>
+            <div class="detail-label">Spouse Profession:</div>
+            <div class="detail-val">${escapeHtml(m.spouseProfession || '-')}</div>
+          ` : ''}
+
+          <div class="detail-label">Children:</div>
+          <div class="detail-val">${m.hasChildren ? (m.childrenSummary || m.childCount + ' Children') : 'None'}</div>
+
+          <div class="detail-label">Profession:</div>
+          <div class="detail-val">${escapeHtml(m.profession || '-')} ${m.professionDetail ? '(' + escapeHtml(m.professionDetail) + ')' : ''}</div>
+
+          ${m.professionBrief ? `
+            <div class="detail-label">Profession Details:</div>
+            <div class="detail-val">${escapeHtml(m.professionBrief)}</div>
+          ` : ''}
+        </div>
+
+        <h4 style="font-size: 0.85rem; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 12px; margin-top: 18px;">
+          <i class="fa-solid fa-receipt"></i> Payment & Membership
+        </h4>
+        <div class="detail-grid">
+          <div class="detail-label">Payment Status:</div>
+          <div class="detail-val">${m.paymentStatus === 'Completed' ? '<span class="ant-tag tag-completed">✓ Completed</span>' : '<span class="ant-tag tag-pending">⏳ Pending</span>'}</div>
+
+          <div class="detail-label">Amount Paid:</div>
+          <div class="detail-val"><strong>₹ ${Number(m.amountPaid || 1100).toLocaleString('en-IN')}</strong> (${m.paymentMethod || 'UPI'})</div>
+
+          <div class="detail-label">Transaction Ref / UTR:</div>
+          <div class="detail-val"><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${m.transactionRef || 'N/A'}</code></div>
+
+          <div class="detail-label">Designation:</div>
+          <div class="detail-val">${m.designation || 'Executive Member'}</div>
+
+          <div class="detail-label">Validity:</div>
+          <div class="detail-val">${m.joiningDate || '-'} to ${m.validityUpto || '31-12-2025'}</div>
+        </div>
+      `;
+
+      document.getElementById('modal-details-content').innerHTML = html;
+      document.getElementById('modal-member-details').classList.remove('hidden');
+    }
+
+    function closeDetailsModal() {
+      document.getElementById('modal-member-details').classList.add('hidden');
+    }
+
+    function printCardFromDetails() {
+      if (activeMemberForAction) {
+        printCardDirectly(activeMemberForAction.memberId);
+      }
+    }
+
+    // Modal: Verify / Edit Payment
+    function openPaymentModal(memberId) {
+      const m = allMembers.find(item => item.memberId === memberId);
+      if (!m) return;
+      activeMemberForAction = m;
+
+      document.getElementById('pay-modal-member-name').textContent = `${m.fullName} (ID: ${m.memberId})`;
+      document.getElementById('pay-modal-status').value = m.paymentStatus || 'Completed';
+      document.getElementById('pay-modal-amount').value = m.amountPaid || 1100;
+      document.getElementById('pay-modal-utr').value = (m.transactionRef && m.transactionRef !== 'PAYMENT_PENDING') ? m.transactionRef : '';
+
+      document.getElementById('modal-payment-verify').classList.remove('hidden');
+    }
+
+    function closePaymentModal() {
+      document.getElementById('modal-payment-verify').classList.add('hidden');
+    }
+
+    function submitPaymentUpdate() {
+      if (!activeMemberForAction) return;
+
+      const status = document.getElementById('pay-modal-status').value;
+      const amount = document.getElementById('pay-modal-amount').value;
+      const utr = document.getElementById('pay-modal-utr').value.trim();
+
+      fetch(`/api/members/${activeMemberForAction.memberId}/payment`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': currentAdminToken
+        },
+        body: JSON.stringify({
+          paymentStatus: status,
+          amountPaid: amount,
+          transactionRef: utr
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert('Payment status updated successfully!');
+          closePaymentModal();
+          loadDashboardData();
+        } else {
+          alert('Update error: ' + data.message);
+        }
+      })
+      .catch(err => alert('Server connection error: ' + err.message));
+    }
+
+    // Delete Member Action
+    function deleteMember(memberId, name) {
+      if (confirm(`Are you sure you want to permanently delete member: "${name}" (ID: ${memberId})?`)) {
+        fetch(`/api/admin/members/${memberId}`, {
+          method: 'DELETE',
+          headers: { 'x-admin-token': currentAdminToken }
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            alert('Member deleted successfully.');
+            loadDashboardData();
+          } else {
+            alert('Delete failed: ' + data.message);
+          }
+        })
+        .catch(err => alert('Error: ' + err.message));
+      }
+    }
+
+    // Direct ID Card Drawing & Print
+    function printCardDirectly(memberId) {
+      const member = allMembers.find(m => m.memberId === memberId);
+      if (!member) return;
+
+      const canvas = document.getElementById('admin-card-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 1024;
+      canvas.height = 438;
+
+      const bgImg = new Image();
+      bgImg.src = "/images/card_template.jpg";
+      bgImg.onload = function () {
+        ctx.clearRect(0, 0, 1024, 438);
+        ctx.drawImage(bgImg, 0, 0, 1024, 438);
+
+        ctx.textBaseline = 'top';
+        ctx.imageSmoothingEnabled = true;
+
+        const rawId = (member.memberId || '0001').toString().trim();
+        const formattedId = rawId.toUpperCase().startsWith('NAWS-') ? rawId.toUpperCase() : ('NAWS-' + rawId.padStart(4, '0'));
+        const memberName = (member.fullName || 'MEMBER NAME').toUpperCase();
+        let fatherName = member.fatherHusbandName || '-';
+        if (fatherName !== '-' && !/^sh\.?/i.test(fatherName)) fatherName = 'Sh. ' + fatherName;
+        const dobAge = (member.dob || '-') + (member.age ? (' (' + member.age + ' Yrs)') : '');
+        const designation = member.designation || 'Member';
+        const joiningDate = member.joiningDate || '01-01-2025';
+        const validityUpto = member.validityUpto || '31-12-2025';
+
+        const startX = 45;
+        const startY = 192;
+        const gapY = 34;
+        const colonX = startX + 165;
+        const col2X = startX + 185;
+
+        function drawRow(rowIdx, label, value, valColor, valFont) {
+          const y = startY + (rowIdx * gapY);
+          ctx.fillStyle = '#1e3a8a';
+          ctx.font = 'bold 20px "Plus Jakarta Sans", Arial, sans-serif';
+          ctx.fillText(label, startX, y);
+          ctx.fillText(':', colonX, y);
+          ctx.fillStyle = valColor || '#0f172a';
+          ctx.font = valFont || '600 20px "Plus Jakarta Sans", Arial, sans-serif';
+          ctx.fillText(value, col2X, y);
+        }
+
+        drawRow(0, 'Member Name', memberName, '#0f172a', 'bold 22px "Plus Jakarta Sans", Arial, sans-serif');
+        drawRow(1, 'Membership No.', formattedId, '#b45309', 'bold 20px "Plus Jakarta Sans", Arial, sans-serif');
+        drawRow(2, 'Father / Hus.', fatherName, '#0f172a', '600 19px "Plus Jakarta Sans", Arial, sans-serif');
+        drawRow(3, 'DOB & Age', dobAge, '#0f172a', '500 19px "Plus Jakarta Sans", Arial, sans-serif');
+        drawRow(4, 'Designation', designation, '#059669', 'bold 20px "Plus Jakarta Sans", Arial, sans-serif');
+
+        // Right side dates
+        ctx.fillStyle = '#475569';
+        ctx.font = 'bold 15px "Plus Jakarta Sans", Arial, sans-serif';
+        ctx.fillText('Issued: ' + joiningDate, 820, 245);
+        ctx.fillText('Valid Upto: ' + validityUpto, 820, 275);
+
+        // Open Print Window
+        const dataUrl = canvas.toDataURL('image/png');
+        const printWin = window.open('', '_blank');
+        if (!printWin) {
+          alert('Popup blocked. Please allow popups.');
+          return;
+        }
+        printWin.document.write(`
+          <!DOCTYPE html><html><head><title>Member ID Card - ${memberName}</title>
+          <style>
+            @page { size: landscape; margin: 10mm; }
+            body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; margin: 0; font-family: sans-serif; background: #f8fafc; }
+            img { width: 85.6mm; height: 36.6mm; border-radius: 3.18mm; border: 1px solid #cbd5e1; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+            @media print { body { background: white; } img { box-shadow: none; } }
+          </style></head><body>
+          <div style="text-align: center;">
+            <img src="${dataUrl}">
+            <p style="margin-top: 10px; font-size: 13px; color: #475569; font-weight: 600;">Naujwan Aggarwal Welfare Society (Reg.) Jalandhar • Official ID Card</p>
+          </div>
+          <script>setTimeout(function() { window.print(); }, 400);<\/script>
+          </body></html>
+        `);
+        printWin.document.close();
+      };
+    }
+
+    // Export to CSV Function
+    function exportToCsv() {
+      if (allMembers.length === 0) {
+        alert('No member records to export.');
+        return;
+      }
+
+      const headers = ['Member ID', 'Receipt No', 'Full Name', 'Father/Husband Name', 'Gender', 'DOB', 'Age', 'Mobile No', 'WhatsApp No', 'Email', 'Constituency', 'Pincode', 'Address', 'Profession', 'Marital Status', 'Spouse Name', 'Amount Paid', 'Payment Method', 'Transaction Ref', 'Payment Status', 'Joining Date'];
+      
+      const rows = allMembers.map(m => [
+        m.memberId || '',
+        m.receiptNo || '',
+        `"${(m.fullName || '').replace(/"/g, '""')}"`,
+        `"${(m.fatherHusbandName || '').replace(/"/g, '""')}"`,
+        m.sex || '',
+        m.dob || '',
+        m.age || '',
+        m.mobileNo || '',
+        m.whatsappNo || '',
+        m.email || '',
+        `"${(m.constituency || '').replace(/"/g, '""')}"`,
+        m.pincode || '',
+        `"${(m.address || '').replace(/"/g, '""')}"`,
+        `"${(m.profession || '').replace(/"/g, '""')}"`,
+        m.maritalStatus || '',
+        `"${(m.spouseName || '').replace(/"/g, '""')}"`,
+        m.amountPaid || '1100',
+        m.paymentMethod || 'UPI',
+        `"${(m.transactionRef || '').replace(/"/g, '""')}"`,
+        m.paymentStatus || '',
+        m.joiningDate || ''
+      ]);
+
+      let csvContent = '\uFEFF' + headers.join(',') + '\n' + rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Aggarwal_Society_Members_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Helper functions
+    function formatPhone(digits) {
+      if (!digits) return '-';
+      const clean = digits.toString().replace(/\D/g, '');
+      if (clean.length === 10) {
+        return clean.slice(0, 3) + '-' + clean.slice(3, 7) + '-' + clean.slice(7);
+      }
+      return digits;
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,17 @@
+{
+  "name": "naujwan-aggarwal-welfare-society",
+  "version": "1.0.0",
+  "description": "Naujwan Aggarwal Welfare Society - Member Registration Portal & Admin Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongoose": "^8.9.5"
+  }
+}
+
