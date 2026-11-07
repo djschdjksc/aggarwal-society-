@@ -1567,8 +1567,8 @@
           <script>setTimeout(function() { window.print(); }, 400);<\/script>
           
   <!-- Modal: More Info & Board Member Details -->
-  <div id="more-info-modal" class="ant-modal hidden">
-    <div class="ant-modal-content" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+  <div id="more-info-modal" class="ant-modal-overlay hidden" onclick="if(event.target === this) closeMoreInfoModal();">
+    <div class="ant-modal" style="max-width: 720px; width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.35); border-radius: 14px;">
       <div class="ant-modal-header" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: white; border-radius: 8px 8px 0 0; padding: 18px 22px;">
         <div>
           <div style="font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
@@ -1581,7 +1581,7 @@
         <button type="button" class="ant-modal-close" onclick="closeMoreInfoModal()" style="color: white; font-size: 1.3rem; background: transparent; border: none; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <div class="ant-modal-body" style="padding: 22px;">
+      <div class="ant-modal-body" style="padding: 22px; overflow-y: auto; max-height: calc(90vh - 140px);">
         <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; font-size: 0.85rem; color: #1e3a8a; line-height: 1.5;">
           <strong>Naujwan Aggarwal Welfare Society (Regd.), Jalandhar</strong> is dedicated to the social welfare, youth empowerment, community development, and healthcare assistance for the Aggarwal community. Below is the list of official Board of Directors and Executive Office Bearers.
         </div>
@@ -1787,8 +1787,8 @@
   </script>
 
   <!-- Modal: More Info & Board Member Details -->
-  <div id="more-info-modal" class="ant-modal hidden">
-    <div class="ant-modal-content" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+  <div id="more-info-modal" class="ant-modal-overlay hidden" onclick="if(event.target === this) closeMoreInfoModal();">
+    <div class="ant-modal" style="max-width: 720px; width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.35); border-radius: 14px;">
       <div class="ant-modal-header" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: white; border-radius: 8px 8px 0 0; padding: 18px 22px;">
         <div>
           <div style="font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
@@ -1801,7 +1801,7 @@
         <button type="button" class="ant-modal-close" onclick="closeMoreInfoModal()" style="color: white; font-size: 1.3rem; background: transparent; border: none; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <div class="ant-modal-body" style="padding: 22px;">
+      <div class="ant-modal-body" style="padding: 22px; overflow-y: auto; max-height: calc(90vh - 140px);">
         <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; font-size: 0.85rem; color: #1e3a8a; line-height: 1.5;">
           <strong>Naujwan Aggarwal Welfare Society (Regd.), Jalandhar</strong> is dedicated to the social welfare, youth empowerment, community development, and healthcare assistance for the Aggarwal community. Below is the list of official Board of Directors and Executive Office Bearers.
         </div>
