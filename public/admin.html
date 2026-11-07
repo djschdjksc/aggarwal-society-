@@ -1006,7 +1006,15 @@
       fetch(url, {
         headers: { 'x-admin-token': currentAdminToken }
       })
-      .then(res => res.json())
+      .then(res => {
+        if (res.status === 401) {
+          localStorage.removeItem('NAWS_ADMIN_TOKEN');
+          currentAdminToken = '';
+          document.getElementById('login-overlay').classList.remove('hidden');
+          throw new Error('Unauthorized');
+        }
+        return res.json();
+      })
       .then(data => {
         if (spinner) spinner.style.display = 'none';
         if (data.success) {
@@ -1063,6 +1071,71 @@
       }
       input.value = '';
       fetchMembersPage(val);
+    }
+
+    // Render Table Rows
+    function renderTable(members) {
+      const tbody = document.getElementById('members-tbody');
+      if (!members || members.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9">
+              <div class="empty-state" style="text-align: center; padding: 40px 20px; color: #64748b;">
+                <i class="fa-regular fa-folder-open" style="font-size: 2.2rem; color: #cbd5e1; margin-bottom: 10px; display: block;"></i>
+                <div style="font-weight: 700; font-size: 1rem; color: #1e293b; margin-bottom: 4px;">No Members Found</div>
+                <div style="font-size: 0.85rem;">No member records match the selected filters or page.</div>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = members.map(m => {
+        const isCompleted = m.paymentStatus === 'Completed';
+        const statusBadge = isCompleted
+          ? `<span class="ant-tag tag-completed"><i class="fa-solid fa-circle-check"></i> Completed</span>`
+          : `<span class="ant-tag tag-pending"><i class="fa-solid fa-clock"></i> Pending</span>`;
+
+        const rawId = (m.memberId || '').toString();
+        const formattedId = rawId.toUpperCase().startsWith('NAWS-') ? rawId.toUpperCase() : ('NAWS-' + rawId.padStart(4, '0'));
+        const regDate = m.joiningDate || (m.createdAt ? new Date(m.createdAt).toLocaleDateString('en-GB') : '-');
+
+        return `
+          <tr>
+            <td><span class="ant-tag tag-id" style="font-weight: 700; font-family: monospace;">${formattedId}</span></td>
+            <td>
+              <div style="font-weight: 700; color: #0f172a;">${escapeHtml(m.fullName || '-')}</div>
+              <div style="font-size: 0.75rem; color: #64748b;">${m.sex || 'Male'}, ${m.age ? m.age + ' Yrs' : ''}</div>
+            </td>
+            <td>${escapeHtml(m.fatherHusbandName || '-')}</td>
+            <td>
+              <div><a href="tel:${m.mobileNo}" style="color: #1677ff; text-decoration: none; font-weight: 600;"><i class="fa-solid fa-phone" style="font-size: 0.72rem;"></i> ${formatPhone(m.mobileNo)}</a></div>
+              ${m.whatsappNo ? `<div style="font-size: 0.74rem; color: #16a34a;"><i class="fa-brands fa-whatsapp"></i> ${formatPhone(m.whatsappNo)}</div>` : ''}
+            </td>
+            <td>${escapeHtml(m.constituency || '-')}</td>
+            <td style="font-weight: 700; color: #0f172a;">₹ ${Number(m.amountPaid || 1100).toLocaleString('en-IN')}</td>
+            <td>${statusBadge}</td>
+            <td style="font-size: 0.78rem; color: #64748b;">${regDate}</td>
+            <td>
+              <div class="action-cell">
+                <button type="button" class="ant-btn ant-btn-sm" title="View Full Details" onclick="viewMemberDetails('${m.memberId}')">
+                  <i class="fa-solid fa-eye"></i> View
+                </button>
+                <button type="button" class="ant-btn ant-btn-sm" title="Verify Payment" onclick="openPaymentModal('${m.memberId}')">
+                  <i class="fa-solid fa-receipt"></i> Verify
+                </button>
+                <button type="button" class="ant-btn ant-btn-sm ant-btn-primary" title="Print ID Card" onclick="printCardDirectly('${m.memberId}')">
+                  <i class="fa-solid fa-id-card"></i> Card
+                </button>
+                <button type="button" class="ant-btn ant-btn-sm ant-btn-danger" title="Delete Member" onclick="deleteMember('${m.memberId}', '${escapeHtml(m.fullName)}')">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     // Render Pagination Controls & Page Number Pills
