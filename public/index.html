@@ -3197,6 +3197,13 @@
               <i class="fa-solid fa-circle-check"></i> Official Member Identity Card (Valid 1 Year)
             </div>
 
+            <!-- Link to Google Photos Original Card -->
+            <div style="margin-bottom: 8px;">
+              <a href="https://photos.app.goo.gl/mrm4jcTLw6TmBvdx9" target="_blank" rel="noopener noreferrer" style="color: #1d4ed8; font-size: 0.82rem; font-weight: 700; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px; background: #eff6ff; padding: 4px 12px; border-radius: 16px; border: 1px solid #bfdbfe;">
+                🔍 View Official Card Template in Google Photos
+              </a>
+            </div>
+
             <!-- Canvas Container -->
             <div style="border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 14px rgba(0,0,0,0.08); background: #f8fafc; padding: 4px;">
               <canvas id="member-card-canvas" width="1024" height="438"
@@ -5506,7 +5513,7 @@
 
 
 
-      fetch('/api/members/search?q=' + encodeURIComponent(q))
+      fetch('/api/members/search?q=' + encodeURIComponent(query))
         .then(res => res.json())
         .then(res => {
           if (res && res.success && res.member) {
@@ -5523,215 +5530,100 @@
         });
     }
 
-    function drawCardOnCanvas(member) {
-
+        function drawCardOnCanvas(member) {
       const canvas = document.getElementById('member-card-canvas');
-
       if (!canvas) return;
 
       canvas.width = 1024;
-
       canvas.height = 438;
-
       const ctx = canvas.getContext('2d');
 
-
-
       const bgImg = new Image();
-      if (typeof CARD_TEMPLATE_SRC === 'string' && CARD_TEMPLATE_SRC.startsWith('http')) {
-        bgImg.crossOrigin = "anonymous";
-      }
+      bgImg.crossOrigin = "anonymous";
+      bgImg.src = "/images/card_template.jpg?v=" + Date.now();
+
       bgImg.onerror = function () {
-        if (typeof CARD_TEMPLATE_DATA !== 'undefined' && bgImg.src !== CARD_TEMPLATE_DATA) {
-          bgImg.src = CARD_TEMPLATE_DATA;
-        } else {
-          bgImg.src = "new_card_preview.jpg";
-        }
+        bgImg.src = "/images/card_template.png";
       };
 
       bgImg.onload = function () {
-
-        // 1. Draw Template Background Image
-
         ctx.clearRect(0, 0, 1024, 438);
-
         ctx.drawImage(bgImg, 0, 0, 1024, 438);
 
-
-
-        // Configure Context
-
         ctx.textBaseline = 'top';
-
         ctx.imageSmoothingEnabled = true;
 
-
-
-        // Formatting member values
-
-        const rawId = (member.memberId || '0001').toString().trim();
-
+        // Formatting Member Values
+        const rawId = (member.memberId || '1002').toString().trim();
         const formattedId = rawId.toUpperCase().startsWith('NAWS-') ? rawId.toUpperCase() : ('NAWS-' + rawId.padStart(4, '0'));
-
-        const memberName = (member.fullName || 'MEMBER NAME').toUpperCase();
-
+        const memberName = (member.fullName || 'CHANDAN GOEL').toUpperCase();
         let fatherName = member.fatherHusbandName || '-';
-
         if (fatherName !== '-' && !/^sh\.?/i.test(fatherName)) {
-
           fatherName = 'Sh. ' + fatherName;
-
         }
-
-        const dobAge = (member.dob || '-') + (member.age ? (' (' + member.age + ' Yrs)') : '');
-
-        const mobile = member.mobileNo || '-';
-
+        const dobAge = (member.dob || '15-11-1990') + (member.age ? (' (' + member.age + ')') : '');
+        const mobile = member.mobileNo ? formatPhone(member.mobileNo) : rawId;
         const designation = member.designation || 'Member';
+        const joiningDate = member.joiningDate || '01-01-2025';
+        const validityUpto = member.validityUpto || '31-12-2026';
 
-        const joiningDate = member.joiningDate || (member.timestamp ? formatDate(member.timestamp) : '01-01-2025');
+        // Precise Layout Coordinates inside the new template
+        const startX = 55;
+        const colonX = 220;
+        const valX = 240;
+        const startY = 175;
+        const gapY = 28;
 
-
-
-        // 1-Year Validity Calculation
-
-        let validityUpto = member.validityUpto;
-
-        if (!validityUpto || validityUpto.indexOf('2027') !== -1) {
-
-          // Calculate 1 year from joining
-
-          let jParts = joiningDate.split(/[-/]/);
-
-          if (jParts.length === 3) {
-
-            let jYear = parseInt(jParts[2], 10);
-
-            validityUpto = '31-12-' + (isNaN(jYear) ? '2025' : jYear);
-
-          } else {
-
-            validityUpto = '31-12-2025';
-
-          }
-
-        }
-
-
-
-        // Precise Layout Coordinates inside the new template (shifted downwards for perfect alignment)
-
-        const startX = 45;
-
-        const startY = 192;
-
-        const gapY = 34;
-
-        const colonX = startX + 165;
-
-        const col2X = startX + 185;
-
-
-
-        function drawRow(rowIdx, label, value, valColor, valFont) {
-
+        function drawRow(rowIdx, label, value, valColor, isBold) {
           const y = startY + (rowIdx * gapY);
 
-
-
           // Label
-
           ctx.fillStyle = '#1e3a8a';
-
-          ctx.font = 'bold 20px "Plus Jakarta Sans", Arial, sans-serif';
-
+          ctx.font = 'bold 19px "Plus Jakarta Sans", Arial, sans-serif';
           ctx.fillText(label, startX, y);
-
           ctx.fillText(':', colonX, y);
 
-
-
           // Value
-
           ctx.fillStyle = valColor || '#0f172a';
-
-          ctx.font = valFont || '600 20px "Plus Jakarta Sans", Arial, sans-serif';
-
-          ctx.fillText(value, col2X, y);
-
+          ctx.font = (isBold ? 'bold 19px' : '600 19px') + ' "Plus Jakarta Sans", Arial, sans-serif';
+          ctx.fillText(value, valX, y);
         }
 
-
-
         // Row 0: Member Name
-
-        drawRow(0, 'Member Name', memberName, '#0f172a', 'bold 22px "Plus Jakarta Sans", Arial, sans-serif');
-
-
+        drawRow(0, 'Member Name', memberName, '#0f172a', true);
 
         // Row 1: Membership No.
-
-        drawRow(1, 'Membership No.', formattedId, '#b45309', 'bold 20px "Plus Jakarta Sans", Arial, sans-serif');
-
-
+        drawRow(1, 'Membership No.', formattedId, '#b45309', true);
 
         // Row 2: Father / Hus.
-
-        drawRow(2, 'Father / Hus.', fatherName, '#0f172a', '600 19px "Plus Jakarta Sans", Arial, sans-serif');
-
-
+        drawRow(2, 'Father / Hus.', fatherName, '#0f172a', false);
 
         // Row 3: DOB & Age
+        drawRow(3, 'DOB & Age', dobAge, '#0f172a', false);
 
-        drawRow(3, 'DOB & Age', dobAge, '#0f172a', '500 19px "Plus Jakarta Sans", Arial, sans-serif');
+        // Row 4: Mobile No.
+        drawRow(4, 'Mobile No.', mobile, '#0f172a', false);
 
+        // Row 5: Designation
+        drawRow(5, 'Designation', designation, '#059669', true);
 
-
-        // Row 4: Designation (Mobile / Contact No. removed as requested)
-
-        drawRow(4, 'Designation', designation, '#059669', 'bold 20px "Plus Jakarta Sans", Arial, sans-serif');
-
-
-
-        // Row 5: Joining Date & Validity Upto (1 Year Validity)
-
-        const y5 = startY + (5 * gapY);
-
+        // Row 6: Joining Date and Valid Upto side-by-side
+        const y6 = startY + (6 * gapY);
         ctx.fillStyle = '#1e3a8a';
-
-        ctx.font = 'bold 20px "Plus Jakarta Sans", Arial, sans-serif';
-
-        ctx.fillText('Joining Date', startX, y5);
-
-        ctx.fillText(':', colonX, y5);
-
+        ctx.font = 'bold 19px "Plus Jakarta Sans", Arial, sans-serif';
+        ctx.fillText('Joining Date', startX, y6);
+        ctx.fillText(':', colonX, y6);
         ctx.fillStyle = '#0f172a';
-
         ctx.font = '600 19px "Plus Jakarta Sans", Arial, sans-serif';
-
-        ctx.fillText(joiningDate, col2X, y5);
-
-
-
-        // Validity Upto (1 Year Highlighted)
-
-        const valX = startX + 320;
+        ctx.fillText(joiningDate, valX, y6);
 
         ctx.fillStyle = '#b91c1c';
-
-        ctx.font = 'bold 20px "Plus Jakarta Sans", Arial, sans-serif';
-
-        ctx.fillText('Valid Upto :', valX, y5);
-
-        ctx.fillText(validityUpto + ' (1 Yr)', valX + 115, y5);
-
+        ctx.font = 'bold 19px "Plus Jakarta Sans", Arial, sans-serif';
+        ctx.fillText('Valid Upto', 380, y6);
+        ctx.fillText(':', 485, y6);
+        ctx.fillText(validityUpto, 502, y6);
       };
-
-      bgImg.src = CARD_TEMPLATE_SRC;
-
     }
-
-
 
     function downloadMemberCardImage() {
 

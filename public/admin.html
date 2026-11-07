@@ -819,6 +819,46 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Server-Side Pagination Bar (50 rows per page default) -->
+      <div class="pagination-container" id="pagination-bar">
+        <div class="pagination-info" id="pagination-info">
+          Showing <strong id="page-start">0</strong> - <strong id="page-end">0</strong> of <strong id="page-total">0</strong> members
+          <span id="page-loading-spinner" style="display: none; margin-left: 8px; color: #1677ff;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</span>
+        </div>
+
+        <div class="pagination-controls">
+          <button type="button" class="page-btn" id="btn-page-first" onclick="goToPage(1)" title="First Page">
+            <i class="fa-solid fa-angles-left"></i>
+          </button>
+          <button type="button" class="page-btn" id="btn-page-prev" onclick="goToPage(currentPage - 1)" title="Previous Page">
+            <i class="fa-solid fa-angle-left"></i> Prev
+          </button>
+          
+          <div id="pagination-numbers" class="pagination-numbers"></div>
+
+          <button type="button" class="page-btn" id="btn-page-next" onclick="goToPage(currentPage + 1)" title="Next Page">
+            Next <i class="fa-solid fa-angle-right"></i>
+          </button>
+          <button type="button" class="page-btn" id="btn-page-last" onclick="goToPage(totalPages)" title="Last Page">
+            <i class="fa-solid fa-angles-right"></i>
+          </button>
+        </div>
+
+        <div class="pagination-size">
+          <span>Rows per page:</span>
+          <select id="select-page-size" class="ant-select" style="height: 30px; font-size: 0.82rem; padding: 0 6px;" onchange="changePageSize(this.value)">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="200">200</option>
+          </select>
+
+          <span style="margin-left: 6px;">Go to:</span>
+          <input type="number" id="input-page-jump" min="1" placeholder="Page" style="width: 55px; height: 30px; padding: 2px 6px; border: 1px solid var(--ant-border); border-radius: 6px; font-size: 0.82rem;" onkeydown="if(event.key==='Enter') jumpToPageInput()">
+          <button type="button" class="page-btn" onclick="jumpToPageInput()" style="height: 30px; padding: 0 8px; font-size: 0.78rem;">Go</button>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -1394,17 +1434,27 @@
     }
 
     // Direct ID Card Drawing & Print
-    function printCardDirectly(memberId) {
-      const member = allMembers.find(m => m.memberId === memberId);
-      if (!member) return;
+        function printCardDirectly(memberId) {
+      const member = (allMembers || []).find(m => m.memberId === memberId) || (currentMembers || []).find(m => m.memberId === memberId);
+      if (!member) {
+        alert('Member details not found.');
+        return;
+      }
 
-      const canvas = document.getElementById('admin-card-canvas');
+      let canvas = document.getElementById('admin-card-canvas');
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.id = 'admin-card-canvas';
+        canvas.style.display = 'none';
+        document.body.appendChild(canvas);
+      }
       const ctx = canvas.getContext('2d');
       canvas.width = 1024;
       canvas.height = 438;
 
       const bgImg = new Image();
-      bgImg.src = "/images/card_template.jpg";
+      bgImg.crossOrigin = 'anonymous';
+      bgImg.src = '/images/card_template.jpg?v=' + Date.now();
       bgImg.onload = function () {
         ctx.clearRect(0, 0, 1024, 438);
         ctx.drawImage(bgImg, 0, 0, 1024, 438);
@@ -1412,46 +1462,59 @@
         ctx.textBaseline = 'top';
         ctx.imageSmoothingEnabled = true;
 
-        const rawId = (member.memberId || '0001').toString().trim();
+        const rawId = (member.memberId || '1002').toString().trim();
         const formattedId = rawId.toUpperCase().startsWith('NAWS-') ? rawId.toUpperCase() : ('NAWS-' + rawId.padStart(4, '0'));
-        const memberName = (member.fullName || 'MEMBER NAME').toUpperCase();
+        const memberName = (member.fullName || 'CHANDAN GOEL').toUpperCase();
         let fatherName = member.fatherHusbandName || '-';
         if (fatherName !== '-' && !/^sh\.?/i.test(fatherName)) fatherName = 'Sh. ' + fatherName;
-        const dobAge = (member.dob || '-') + (member.age ? (' (' + member.age + ' Yrs)') : '');
+        const dobAge = (member.dob || '-') + (member.age ? (' (' + member.age + ')') : '');
+        const mobile = member.mobileNo ? formatPhone(member.mobileNo) : rawId;
         const designation = member.designation || 'Member';
         const joiningDate = member.joiningDate || '01-01-2025';
-        const validityUpto = member.validityUpto || '31-12-2025';
+        const validityUpto = member.validityUpto || '31-12-2026';
 
-        const startX = 45;
-        const startY = 192;
-        const gapY = 34;
-        const colonX = startX + 165;
-        const col2X = startX + 185;
+        const startX = 55;
+        const colonX = 220;
+        const valX = 240;
+        const startY = 175;
+        const gapY = 28;
 
-        function drawRow(rowIdx, label, value, valColor, valFont) {
+        function drawRow(rowIdx, label, value, valColor, isBold) {
           const y = startY + (rowIdx * gapY);
           ctx.fillStyle = '#1e3a8a';
-          ctx.font = 'bold 20px "Plus Jakarta Sans", Arial, sans-serif';
+          ctx.font = 'bold 19px "Plus Jakarta Sans", Arial, sans-serif';
           ctx.fillText(label, startX, y);
           ctx.fillText(':', colonX, y);
+
           ctx.fillStyle = valColor || '#0f172a';
-          ctx.font = valFont || '600 20px "Plus Jakarta Sans", Arial, sans-serif';
-          ctx.fillText(value, col2X, y);
+          ctx.font = (isBold ? 'bold 19px' : '600 19px') + ' "Plus Jakarta Sans", Arial, sans-serif';
+          ctx.fillText(value, valX, y);
         }
 
-        drawRow(0, 'Member Name', memberName, '#0f172a', 'bold 22px "Plus Jakarta Sans", Arial, sans-serif');
-        drawRow(1, 'Membership No.', formattedId, '#b45309', 'bold 20px "Plus Jakarta Sans", Arial, sans-serif');
-        drawRow(2, 'Father / Hus.', fatherName, '#0f172a', '600 19px "Plus Jakarta Sans", Arial, sans-serif');
-        drawRow(3, 'DOB & Age', dobAge, '#0f172a', '500 19px "Plus Jakarta Sans", Arial, sans-serif');
-        drawRow(4, 'Designation', designation, '#059669', 'bold 20px "Plus Jakarta Sans", Arial, sans-serif');
+        drawRow(0, 'Member Name', memberName, '#0f172a', true);
+        drawRow(1, 'Membership No.', formattedId, '#b45309', true);
+        drawRow(2, 'Father / Hus.', fatherName, '#0f172a', false);
+        drawRow(3, 'DOB & Age', dobAge, '#0f172a', false);
+        drawRow(4, 'Mobile No.', mobile, '#0f172a', false);
+        drawRow(5, 'Designation', designation, '#059669', true);
 
-        // Right side dates
-        ctx.fillStyle = '#475569';
-        ctx.font = 'bold 15px "Plus Jakarta Sans", Arial, sans-serif';
-        ctx.fillText('Issued: ' + joiningDate, 820, 245);
-        ctx.fillText('Valid Upto: ' + validityUpto, 820, 275);
+        // Row 6: Joining Date and Valid Upto side-by-side
+        const y6 = startY + (6 * gapY);
+        ctx.fillStyle = '#1e3a8a';
+        ctx.font = 'bold 19px "Plus Jakarta Sans", Arial, sans-serif';
+        ctx.fillText('Joining Date', startX, y6);
+        ctx.fillText(':', colonX, y6);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '600 19px "Plus Jakarta Sans", Arial, sans-serif';
+        ctx.fillText(joiningDate, valX, y6);
 
-        // Open Print Window
+        ctx.fillStyle = '#b91c1c';
+        ctx.font = 'bold 19px "Plus Jakarta Sans", Arial, sans-serif';
+        ctx.fillText('Valid Upto', 380, y6);
+        ctx.fillText(':', 485, y6);
+        ctx.fillText(validityUpto, 502, y6);
+
+        // Open Printable Window
         const dataUrl = canvas.toDataURL('image/png');
         const printWin = window.open('', '_blank');
         if (!printWin) {
@@ -1465,236 +1528,16 @@
             body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; margin: 0; font-family: sans-serif; background: #f8fafc; }
             img { width: 85.6mm; height: 36.6mm; border-radius: 3.18mm; border: 1px solid #cbd5e1; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
             @media print { body { background: white; } img { box-shadow: none; } }
-          
-    /* Server-Side Pagination Styles */
-    .pagination-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px 20px;
-      background: #f8fafc;
-      border-top: 1px solid var(--ant-border);
-      gap: 12px;
-    }
-
-    .pagination-info {
-      font-size: 0.85rem;
-      color: var(--ant-text-secondary);
-      font-weight: 500;
-    }
-
-    .pagination-info strong {
-      color: #0f172a;
-    }
-
-    .pagination-controls {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      flex-wrap: wrap;
-    }
-
-    .pagination-numbers {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .page-btn {
-      min-width: 32px;
-      height: 32px;
-      padding: 0 8px;
-      border: 1px solid var(--ant-border);
-      background: #ffffff;
-      border-radius: 6px;
-      font-size: 0.84rem;
-      font-weight: 600;
-      color: var(--ant-text);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-    }
-
-    .page-btn:hover:not(:disabled) {
-      border-color: var(--ant-primary);
-      color: var(--ant-primary);
-    }
-
-    .page-btn.active {
-      background: var(--ant-primary);
-      border-color: var(--ant-primary);
-      color: #ffffff;
-    }
-
-    .page-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    .page-ellipsis {
-      padding: 0 4px;
-      color: #8c8c8c;
-      font-weight: 700;
-      font-size: 0.85rem;
-    }
-
-    .pagination-size {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.82rem;
-      color: var(--ant-text-secondary);
-    }
-
-    /* Board Member Cards in More Info Modal */
-    .board-card {
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .board-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 14px rgba(0,0,0,0.08);
-    }
-
-  </style></head><body>
-          <div style="text-align: center;">
-            <img src="${dataUrl}">
-            <p style="margin-top: 10px; font-size: 13px; color: #475569; font-weight: 600;">Naujwan Aggarwal Welfare Society (Reg.) Jalandhar • Official ID Card</p>
-          </div>
-          <script>setTimeout(function() { window.print(); }, 400);<\/script>
-          
-  <!-- Modal: More Info & Board Member Details -->
-  <div id="more-info-modal" class="ant-modal-overlay hidden" onclick="if(event.target === this) closeMoreInfoModal();">
-    <div class="ant-modal" style="max-width: 720px; width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.35); border-radius: 14px;">
-      <div class="ant-modal-header" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: white; border-radius: 8px 8px 0 0; padding: 18px 22px;">
-        <div>
-          <div style="font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-landmark"></i> Naujwan Aggarwal Welfare Society (Reg.), Jalandhar
-          </div>
-          <div style="font-size: 0.85rem; color: #dbeafe; margin-top: 4px; font-weight: 600;">
-            Board Member Details (कार्यकारिणी एवं पदाधिकारी सूची)
-          </div>
-        </div>
-        <button type="button" class="ant-modal-close" onclick="closeMoreInfoModal()" style="color: white; font-size: 1.3rem; background: transparent; border: none; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div class="ant-modal-body" style="padding: 22px; overflow-y: auto; max-height: calc(90vh - 140px);">
-        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; font-size: 0.85rem; color: #1e3a8a; line-height: 1.5;">
-          <strong>Naujwan Aggarwal Welfare Society (Regd.), Jalandhar</strong> is dedicated to the social welfare, youth empowerment, community development, and healthcare assistance for the Aggarwal community. Below is the list of official Board of Directors and Executive Office Bearers.
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
-          
-          <!-- 1. Parveen Aggarwal - Chairman -->
-          <div class="board-card" style="border: 2px solid #fbbf24; background: #fffdf5; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15);">
-            <div style="width: 46px; height: 46px; border-radius: 50%; background: #fef3c7; color: #b45309; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: 800; flex-shrink: 0;">👑</div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 1.05rem; color: #0f172a;">Parveen Aggarwal</div>
-              <span style="background: #f59e0b; color: #ffffff; font-weight: 800; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px; letter-spacing: 0.4px;">Chairman</span>
-            </div>
-          </div>
-
-          <!-- 2. Pawan Kumar Goel - Vice-Chairman -->
-          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #f8fafc; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
-            <div style="width: 46px; height: 46px; border-radius: 50%; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user-tie"></i></div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Pawan Kumar Goel</div>
-              <span style="background: #475569; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Vice-Chairman</span>
-            </div>
-          </div>
-
-          <!-- 3. Chandan Goel - President -->
-          <div class="board-card" style="border: 2px solid #3b82f6; background: #eff6ff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);">
-            <div style="width: 46px; height: 46px; border-radius: 50%; background: #dbeafe; color: #1d4ed8; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-crown"></i></div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 1.05rem; color: #0f172a;">Chandan Goel</div>
-              <span style="background: #2563eb; color: #ffffff; font-weight: 800; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px; letter-spacing: 0.4px;">President</span>
-            </div>
-          </div>
-
-          <!-- 4. Mahesh Garg - Vice-President -->
-          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #f8fafc; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
-            <div style="width: 46px; height: 46px; border-radius: 50%; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user-tie"></i></div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Mahesh Garg</div>
-              <span style="background: #475569; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Vice-President</span>
-            </div>
-          </div>
-
-          <!-- 5. Vishal Gupta - General Secretary -->
-          <div class="board-card" style="border: 1.5px solid #93c5fd; background: #ffffff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
-            <div style="width: 46px; height: 46px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-pen-nib"></i></div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Vishal Gupta</div>
-              <span style="background: #0284c7; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">General Secretary</span>
-            </div>
-          </div>
-
-          <!-- 6. Hitesh Goyal - Treasurer -->
-          <div class="board-card" style="border: 1.5px solid #86efac; background: #f0fdf4; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
-            <div style="width: 46px; height: 46px; border-radius: 50%; background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-coins"></i></div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Hitesh Goyal</div>
-              <span style="background: #16a34a; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Treasurer</span>
-            </div>
-          </div>
-
-          <!-- 7. Mahesh Garg - Co-Ordinator -->
-          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #f8fafc; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
-            <div style="width: 46px; height: 46px; border-radius: 50%; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-network-wired"></i></div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Mahesh Garg</div>
-              <span style="background: #64748b; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Co-Ordinator</span>
-            </div>
-          </div>
-
-          <!-- 8. Manav Bansal - Board Member -->
-          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #ffffff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
-            <div style="width: 46px; height: 46px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user"></i></div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Manav Bansal</div>
-              <span style="background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Board Member</span>
-            </div>
-          </div>
-
-          <!-- 9. Brij Mohan Gupta - Board Member -->
-          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #ffffff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
-            <div style="width: 46px; height: 46px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user"></i></div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Brij Mohan Gupta</div>
-              <span style="background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Board Member</span>
-            </div>
-          </div>
-
-          <!-- 10. Shubham Goyal - Board Member -->
-          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #ffffff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
-            <div style="width: 46px; height: 46px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user"></i></div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Shubham Goyal</div>
-              <span style="background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Board Member</span>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <div class="ant-modal-footer" style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 0.8rem; color: #64748b;">Naujwan Aggarwal Welfare Society (Reg.), Jalandhar</span>
-        <button type="button" class="ant-btn ant-btn-primary" onclick="closeMoreInfoModal()">Done / Close</button>
-      </div>
-    </div>
-  </div>
-
-</body></html>
+          </style></head><body>
+          <img src="${dataUrl}">
+          <p style="margin-top: 15px; font-size: 13px; color: #64748b;">Official Member Identity Card - Naujwan Aggarwal Welfare Society (Reg.)</p>
+          <script>window.onload = function() { window.print(); }<\/script>
+          </body></html>
         `);
         printWin.document.close();
       };
     }
 
-    // Export to CSV Function (Exports All Matching Records from Server)
     async function exportToCsv() {
       const q = document.getElementById('filter-search').value.trim();
       const status = document.getElementById('filter-status').value;
