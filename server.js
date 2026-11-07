@@ -1,18 +1,18 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 const mongoose = require('mongoose');
+require('dotenv').config();
 
 const Member = require('./models/Member');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-const MONGODB_URI = process.env.MONGODB_URI || '';
+const MONGODB_URI = process.env.MONGODB_URI;
 
-// Fallback JSON DB path for when MongoDB is not connected yet
+// Ensure local storage directory & file exist
 const DATA_DIR = path.join(__dirname, 'data');
 const LOCAL_DB_FILE = path.join(DATA_DIR, 'members.json');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -20,15 +20,18 @@ if (!fs.existsSync(LOCAL_DB_FILE)) fs.writeFileSync(LOCAL_DB_FILE, JSON.stringif
 
 let isMongoConnected = false;
 
-// Connect to MongoDB if URI is provided
+// Connect to MongoDB if URI is provided (with quick timeouts for cloud resilience)
 if (MONGODB_URI && MONGODB_URI.trim().startsWith('mongodb')) {
-  mongoose.connect(MONGODB_URI)
+  mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 10000
+  })
     .then(() => {
       isMongoConnected = true;
       console.log('✅ Connected to MongoDB successfully!');
     })
     .catch((err) => {
-      console.error('⚠️ MongoDB connection error:', err.message);
+      console.error('❌ MongoDB connection error:', err.message);
       console.log('🔄 Falling back to local JSON storage for seamless operation.');
     });
 } else {
@@ -54,6 +57,11 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Cloud Platform Health Check Route
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // Serve static frontend assets
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -74,79 +82,93 @@ app.post('/api/admin/login', (req, res) => {
   if (password === ADMIN_PASSWORD) {
     return res.json({ success: true, token: ADMIN_PASSWORD, message: 'Login successful' });
   }
-  return res.status(401).json({ success: false, message: 'Invalid Admin Password' });
+  return res.status(401).json({ success: false, message: 'Invalid Admin Password.' });
 });
 
-// 2. Register New Member
-app.post('/api/members', async (req, res) => {
+// 2. High-Performance Paginated Admin Members API (Supports 50 rows/page, Lakhs of records)
+app.get('/api/admin/members', requireAdmin, async (req, res) => {
   try {
-    const data = req.body;
-    if (!data.fullName || !data.mobileNo) {
-      return res.status(400).json({ success: false, message: 'Full Name and Mobile No. are required.' });
-    }
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const isExport = req.query.all === 'true';
+    const limit = isExport ? 100000 : Math.min(200, Math.max(10, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
 
-    const cleanMobile = data.mobileNo.replace(/\D/g, '');
-    const currentYear = new Date().getFullYear();
-    const joiningDate = data.joiningDate || new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-    const validityUpto = data.validityUpto || `31-12-${currentYear}`;
-
-    let nextIdNumber = 1001;
+    const search = (req.query.search || '').trim();
+    const status = (req.query.status || '').trim();
 
     if (isMongoConnected) {
-      const lastMember = await Member.findOne().sort({ createdAt: -1 });
-      if (lastMember && lastMember.memberId) {
-        const num = parseInt(lastMember.memberId.replace(/\D/g, ''), 10);
-        if (!isNaN(num)) nextIdNumber = num + 1;
+      const query = {};
+      if (status && status !== 'all') {
+        query.paymentStatus = status;
       }
-    } else {
-      const members = getLocalMembers();
-      if (members.length > 0) {
-        const last = members[members.length - 1];
-        const num = parseInt((last.memberId || '').replace(/\D/g, ''), 10);
-        if (!isNaN(num)) nextIdNumber = num + 1;
+      if (search) {
+        const cleanDigits = search.replace(/\D/g, '');
+        const searchOr = [
+          { fullName: { $regex: search, $options: 'i' } },
+          { memberId: { $regex: search, $options: 'i' } },
+          { address: { $regex: search, $options: 'i' } }
+        ];
+        if (cleanDigits) {
+          searchOr.push({ mobileNo: { $regex: cleanDigits } });
+        }
+        query.$or = searchOr;
       }
-    }
 
-    const memberId = nextIdNumber.toString();
-    const receiptNo = `NAWS-REC-${memberId}`;
+      const totalCount = await Member.countDocuments(query);
+      const members = await Member.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
 
-    const newRecord = {
-      ...data,
-      memberId,
-      receiptNo,
-      mobileNo: cleanMobile,
-      joiningDate,
-      validityUpto,
-      designation: data.designation || 'Executive Member',
-      amountPaid: Number(data.amountPaid) || 1100,
-      paymentStatus: data.paymentStatus || 'Completed',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    if (isMongoConnected) {
-      const doc = new Member(newRecord);
-      await doc.save();
+      return res.json({
+        success: true,
+        count: members.length,
+        totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit) || 1,
+        members
+      });
     } else {
-      const members = getLocalMembers();
-      members.push(newRecord);
-      saveLocalMembers(members);
-    }
+      // Local JSON File Mode
+      let members = getLocalMembers();
+      if (status && status !== 'all') {
+        members = members.filter(m => (m.paymentStatus || '').toLowerCase() === status.toLowerCase());
+      }
+      if (search) {
+        const q = search.toLowerCase();
+        const cleanDigits = search.replace(/\D/g, '');
+        members = members.filter(m =>
+          (m.fullName && m.fullName.toLowerCase().includes(q)) ||
+          (m.memberId && m.memberId.toString().toLowerCase().includes(q)) ||
+          (m.address && m.address.toLowerCase().includes(q)) ||
+          (cleanDigits && m.mobileNo && m.mobileNo.replace(/\D/g, '').includes(cleanDigits))
+        );
+      }
 
-    return res.json({
-      success: true,
-      member: newRecord,
-      memberId,
-      receiptNo,
-      message: 'Member registered successfully!'
-    });
+      const totalCount = members.length;
+      members.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+      const paginatedMembers = isExport ? members : members.slice(skip, skip + limit);
+
+      return res.json({
+        success: true,
+        count: paginatedMembers.length,
+        totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit) || 1,
+        members: paginatedMembers
+      });
+    }
   } catch (err) {
-    console.error('Registration error:', err);
-    return res.status(500).json({ success: false, message: err.message || 'Internal Server Error' });
+    console.error('Fetch members error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch members: ' + err.message });
   }
 });
 
-// 3. Search Member (Public: for Card Download & Payment Verification Lookup)
+// 3. Search Member by Member ID or Mobile Number
 app.get('/api/members/search', async (req, res) => {
   try {
     const q = (req.query.q || '').trim();
@@ -183,206 +205,210 @@ app.get('/api/members/search', async (req, res) => {
     return res.json({ success: true, member });
   } catch (err) {
     console.error('Search error:', err);
-    return res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: 'Search failed.' });
   }
 });
 
-// 4. Update Payment Status (for verifying pending payments)
-app.put('/api/members/:id/payment', async (req, res) => {
+// 4. Register New Member
+app.post('/api/members', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { transactionRef, amountPaid, paymentMethod, paymentStatus } = req.body;
+    const data = req.body;
 
-    const updates = {
-      paymentStatus: paymentStatus || 'Completed',
-      transactionRef: transactionRef || '',
-      amountPaid: Number(amountPaid) || 1100,
-      paymentMethod: paymentMethod || 'UPI',
+    if (!data.fullName || !data.mobileNo) {
+      return res.status(400).json({ success: false, message: 'Name and Mobile Number are required.' });
+    }
+
+    const cleanMobile = data.mobileNo.replace(/\D/g, '');
+
+    // Check for existing mobile number
+    let existing = null;
+    if (isMongoConnected) {
+      existing = await Member.findOne({ mobileNo: cleanMobile });
+    } else {
+      const members = getLocalMembers();
+      existing = members.find(m => (m.mobileNo || '').replace(/\D/g, '') === cleanMobile);
+    }
+
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: `A member with mobile number ${data.mobileNo} is already registered with Member ID: ${existing.memberId}`
+      });
+    }
+
+    // Generate unique sequential Member ID
+    let nextIdNumber = 1001;
+    if (isMongoConnected) {
+      const last = await Member.findOne().sort({ createdAt: -1 });
+      if (last && last.memberId) {
+        const parsed = parseInt(last.memberId.replace(/\D/g, ''), 10);
+        if (!isNaN(parsed)) nextIdNumber = parsed + 1;
+      }
+    } else {
+      const members = getLocalMembers();
+      if (members.length > 0) {
+        const last = members[members.length - 1];
+        if (last && last.memberId) {
+          const parsed = parseInt(last.memberId.replace(/\D/g, ''), 10);
+          if (!isNaN(parsed)) nextIdNumber = parsed + 1;
+        }
+      }
+    }
+
+    const memberId = nextIdNumber.toString();
+    const receiptNo = `NAWS-REC-${memberId}`;
+
+    const newMemberData = {
+      ...data,
+      mobileNo: cleanMobile,
+      memberId,
+      receiptNo,
+      joiningDate: data.joiningDate || new Date().toLocaleDateString('en-GB').replace(/\//g, '-'),
+      validityUpto: data.validityUpto || '31-12-2026',
+      designation: data.designation || 'Member',
+      paymentStatus: data.paymentStatus || 'Pending',
+      amountPaid: data.amountPaid ? Number(data.amountPaid) : 1100,
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
-    let updatedMember = null;
-
     if (isMongoConnected) {
-      updatedMember = await Member.findOneAndUpdate(
-        { $or: [{ memberId: id }, { _id: mongoose.isValidObjectId(id) ? id : null }] },
-        { $set: updates },
-        { new: true }
-      );
+      const saved = await Member.create(newMemberData);
+      return res.json({ success: true, memberId, member: saved });
     } else {
       const members = getLocalMembers();
-      const idx = members.findIndex(m => m.memberId === id || m._id === id);
-      if (idx !== -1) {
-        members[idx] = { ...members[idx], ...updates };
-        saveLocalMembers(members);
-        updatedMember = members[idx];
+      members.push(newMemberData);
+      saveLocalMembers(members);
+      return res.json({ success: true, memberId, member: newMemberData });
+    }
+  } catch (err) {
+    console.error('Registration error:', err);
+    return res.status(500).json({ success: false, message: 'Server error saving member: ' + err.message });
+  }
+});
+
+// 5. Update Payment Status / Details (Verification)
+app.put('/api/members/:memberId/payment', async (req, res) => {
+  try {
+    const { memberId } = req.params;
+    const { paymentStatus, transactionRef, payerUpiId, amountPaid } = req.body;
+
+    if (isMongoConnected) {
+      const member = await Member.findOne({
+        $or: [{ memberId }, { memberId: memberId.replace(/\D/g, '') }]
+      });
+
+      if (!member) {
+        return res.status(404).json({ success: false, message: 'Member record not found.' });
       }
-    }
 
-    if (!updatedMember) {
-      return res.status(404).json({ success: false, message: 'Member not found.' });
-    }
+      if (paymentStatus) member.paymentStatus = paymentStatus;
+      if (transactionRef) member.transactionRef = transactionRef;
+      if (payerUpiId) member.payerUpiId = payerUpiId;
+      if (amountPaid) member.amountPaid = Number(amountPaid);
+      member.updatedAt = new Date();
 
-    return res.json({ success: true, member: updatedMember, message: 'Payment updated successfully!' });
+      await member.save();
+      return res.json({ success: true, member });
+    } else {
+      const members = getLocalMembers();
+      const idx = members.findIndex(m => 
+        (m.memberId && m.memberId.toString() === memberId) ||
+        (m.memberId && m.memberId.toString().replace(/\D/g, '') === memberId.replace(/\D/g, ''))
+      );
+
+      if (idx === -1) {
+        return res.status(404).json({ success: false, message: 'Member record not found.' });
+      }
+
+      if (paymentStatus) members[idx].paymentStatus = paymentStatus;
+      if (transactionRef) members[idx].transactionRef = transactionRef;
+      if (payerUpiId) members[idx].payerUpiId = payerUpiId;
+      if (amountPaid) members[idx].amountPaid = Number(amountPaid);
+      members[idx].updatedAt = new Date().toISOString();
+
+      saveLocalMembers(members);
+      return res.json({ success: true, member: members[idx] });
+    }
   } catch (err) {
     console.error('Update payment error:', err);
-    return res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: 'Update failed: ' + err.message });
   }
 });
 
-// 5. Admin: Paginated & Filtered Members List (Optimized for Lakhs of Records)
-app.get('/api/admin/members', requireAdmin, async (req, res) => {
+// 6. Delete Member (Admin Only)
+app.delete('/api/admin/members/:memberId', requireAdmin, async (req, res) => {
   try {
-    const { status, search, constituency } = req.query;
-    const isExport = req.query.all === 'true';
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = isExport ? 100000 : Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
-    const skip = (page - 1) * limit;
-
-    let totalCount = 0;
-    let list = [];
+    const { memberId } = req.params;
 
     if (isMongoConnected) {
-      let filter = {};
-      if (status && status !== 'All') filter.paymentStatus = status;
-      if (constituency && constituency !== 'All') filter.constituency = constituency;
-      if (search) {
-        const cleanS = search.replace(/\D/g, '');
-        const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        filter.$or = [
-          { fullName: searchRegex },
-          { memberId: searchRegex },
-          { fatherHusbandName: searchRegex },
-          { transactionRef: searchRegex }
-        ];
-        if (cleanS) {
-          filter.$or.push({ mobileNo: new RegExp(cleanS, 'i') });
-        }
+      const result = await Member.deleteOne({
+        $or: [{ memberId }, { memberId: memberId.replace(/\D/g, '') }]
+      });
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ success: false, message: 'Member not found.' });
       }
-
-      totalCount = await Member.countDocuments(filter);
-
-      let query = Member.find(filter)
-        .sort({ createdAt: -1 });
-
-      if (!isExport) {
-        query = query.skip(skip).limit(limit);
-      }
-
-      list = await query.lean();
+      return res.json({ success: true, message: 'Member deleted successfully.' });
     } else {
-      let all = getLocalMembers();
-      if (status && status !== 'All') {
-        all = all.filter(m => m.paymentStatus === status);
+      const members = getLocalMembers();
+      const initialLen = members.length;
+      const filtered = members.filter(m => 
+        m.memberId !== memberId && 
+        (m.memberId ? m.memberId.toString().replace(/\D/g, '') !== memberId.replace(/\D/g, '') : true)
+      );
+
+      if (filtered.length === initialLen) {
+        return res.status(404).json({ success: false, message: 'Member not found.' });
       }
-      if (constituency && constituency !== 'All') {
-        all = all.filter(m => m.constituency === constituency);
-      }
-      if (search) {
-        const s = search.toLowerCase();
-        all = all.filter(m => 
-          (m.fullName && m.fullName.toLowerCase().includes(s)) ||
-          (m.memberId && m.memberId.toString().includes(s)) ||
-          (m.mobileNo && m.mobileNo.includes(s)) ||
-          (m.fatherHusbandName && m.fatherHusbandName.toLowerCase().includes(s)) ||
-          (m.transactionRef && m.transactionRef.toLowerCase().includes(s))
-        );
-      }
-      all.reverse();
-      totalCount = all.length;
-      list = isExport ? all : all.slice(skip, skip + limit);
+
+      saveLocalMembers(filtered);
+      return res.json({ success: true, message: 'Member deleted successfully.' });
     }
-
-    const totalPages = Math.ceil(totalCount / limit) || 1;
-
-    return res.json({
-      success: true,
-      count: list.length,
-      totalCount,
-      page,
-      limit,
-      totalPages,
-      members: list
-    });
   } catch (err) {
-    console.error('Admin members error:', err);
-    return res.status(500).json({ success: false, message: err.message });
+    console.error('Delete member error:', err);
+    return res.status(500).json({ success: false, message: 'Delete failed.' });
   }
 });
 
-// 6. Admin: Analytics & Reports Stats
-app.get('/api/admin/stats', requireAdmin, async (req, res) => {
-  try {
-    let all = [];
-    if (isMongoConnected) {
-      all = await Member.find({});
-    } else {
-      all = getLocalMembers();
-    }
-
-    const totalMembers = all.length;
-    let completedPayments = 0;
-    let pendingPayments = 0;
-    let totalFundsCollected = 0;
-    const constituencyStats = {};
-
-    all.forEach(m => {
-      if (m.paymentStatus === 'Completed') {
-        completedPayments++;
-        totalFundsCollected += (Number(m.amountPaid) || 0);
-      } else {
-        pendingPayments++;
-      }
-      const c = m.constituency || 'Other / Not Specified';
-      constituencyStats[c] = (constituencyStats[c] || 0) + 1;
-    });
-
-    return res.json({
-      success: true,
-      stats: {
-        totalMembers,
-        completedPayments,
-        pendingPayments,
-        totalFundsCollected,
-        constituencyStats,
-        storageMode: isMongoConnected ? 'MongoDB Database' : 'Local JSON Storage'
-      }
-    });
-  } catch (err) {
-    console.error('Admin stats error:', err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// 7. Admin: Delete Member
-app.delete('/api/admin/members/:id', requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (isMongoConnected) {
-      await Member.findOneAndDelete({ memberId: id });
-    } else {
-      let members = getLocalMembers();
-      members = members.filter(m => m.memberId !== id);
-      saveLocalMembers(members);
-    }
-    return res.json({ success: true, message: 'Member deleted successfully.' });
-  } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// Route for Admin Dashboard
+// 7. Route for Admin Dashboard
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// Start Server
-app.listen(PORT, () => {
+// Global Error Handler (catches invalid JSON body, etc.)
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ success: false, message: 'Invalid JSON payload provided.' });
+  }
+  console.error('Unhandled server error:', err);
+  res.status(500).json({ success: false, message: 'Internal server error.' });
+});
+
+// Start Server - explicitly bind to 0.0.0.0 for Cloud & Docker compatibility
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`====================================================`);
   console.log(`🚀 Naujwan Aggarwal Welfare Society Portal is live!`);
-  console.log(`🌐 Public Registration Portal: http://localhost:${PORT}`);
-  console.log(`🔐 Owner Admin Dashboard:      http://localhost:${PORT}/admin`);
-  console.log(`📦 Storage Engine:             ${isMongoConnected ? 'MongoDB' : 'Local File (data/members.json)'}`);
+  console.log(`🌐 Listening on:               0.0.0.0:${PORT}`);
+  console.log(`📱 Public Registration Portal: http://localhost:${PORT}`);
+  console.log(`👑 Owner Admin Dashboard:      http://localhost:${PORT}/admin`);
+  console.log(`💾 Storage Engine:             ${isMongoConnected ? 'MongoDB' : 'Local File (data/members.json)'}`);
   console.log(`====================================================`);
 });
 
+// Graceful shutdown handling for Cloud Orchestrators (Render / Railway / Docker SIGTERM)
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM signal. Closing HTTP server gracefully...');
+  server.close(() => {
+    console.log('HTTP server closed. Exiting process.');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT signal. Closing HTTP server gracefully...');
+  server.close(() => {
+    console.log('HTTP server closed. Exiting process.');
+    process.exit(0);
+  });
+});
