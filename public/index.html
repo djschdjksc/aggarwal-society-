@@ -695,9 +695,7 @@
 
 
     .form-step.active {
-
-      display: block;
-
+      display: block !important;
     }
 
 
@@ -2353,23 +2351,14 @@
     <!-- Step Progress Tracker Bar -->
 
     <div class="step-progress-bar">
-
-      <div class="progress-step active" id="p-step-1">
-
+      <div class="progress-step active" id="p-step-1" onclick="backToStep1()" style="cursor: pointer;" title="1. Registration">
         <div class="step-line"></div>
-
         <span class="step-text" id="txt-step1-lbl">1. Registration</span>
-
       </div>
-
-      <div class="progress-step" id="p-step-2">
-
+      <div class="progress-step" id="p-step-2" onclick="switchToStep2()" style="cursor: pointer;" title="2. Membership">
         <div class="step-line"></div>
-
         <span class="step-text" id="txt-step2-lbl">2. Membership</span>
-
       </div>
-
     </div>
 
 
@@ -3902,8 +3891,24 @@
       }
 
       // Step 1 Validation Passed! Switch to Step 2
-      document.getElementById('step-1').classList.add('hidden');
-      document.getElementById('step-2').classList.remove('hidden');
+      switchToStep2();
+    }
+
+    function switchToStep2() {
+      const step1 = document.getElementById('step-1');
+      const step2 = document.getElementById('step-2');
+
+      if (step1) {
+        step1.classList.remove('active');
+        step1.classList.add('hidden');
+        step1.style.display = 'none';
+      }
+
+      if (step2) {
+        step2.classList.add('active');
+        step2.classList.remove('hidden');
+        step2.style.display = 'block';
+      }
 
       // Update Stepper
       const p1 = document.getElementById('p-step-1');
@@ -3911,18 +3916,31 @@
       if (p1) { p1.classList.remove('active'); p1.classList.add('done'); }
       if (p2) { p2.classList.add('active'); }
 
-      // Populate Step 2 Member Summary Banner
+      // Populate Step 2 Member Summary Banner if elements exist
+      const fullName = (document.getElementById('fullName') ? document.getElementById('fullName').value.trim() : '');
       const sName = document.getElementById('summary-member-name');
       const sMobile = document.getElementById('summary-member-mobile');
       if (sName) sName.textContent = fullName;
-      if (sMobile) sMobile.textContent = document.getElementById('mobileNo').value;
+      if (sMobile) sMobile.textContent = (document.getElementById('mobileNo') ? document.getElementById('mobileNo').value : '');
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function backToStep1() {
-      document.getElementById('step-2').classList.add('hidden');
-      document.getElementById('step-1').classList.remove('hidden');
+      const step1 = document.getElementById('step-1');
+      const step2 = document.getElementById('step-2');
+
+      if (step2) {
+        step2.classList.remove('active');
+        step2.classList.add('hidden');
+        step2.style.display = 'none';
+      }
+
+      if (step1) {
+        step1.classList.add('active');
+        step1.classList.remove('hidden');
+        step1.style.display = 'block';
+      }
 
       const p1 = document.getElementById('p-step-1');
       const p2 = document.getElementById('p-step-2');
@@ -3931,8 +3949,6 @@
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-
-    
 
     function updateWordCount(el) {
       const counter = document.getElementById('wordCountDisplay');
