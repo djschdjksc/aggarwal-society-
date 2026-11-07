@@ -2907,188 +2907,136 @@
 
 
         <!-- ================= STEP 2: MEMBERSHIP PAYMENT ================= -->
-
         <div class="form-step" id="step-2">
 
+          <div class="payment-hero" style="border: 2px solid #bfdbfe; border-radius: 16px; padding: 18px 14px; background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%); text-align: center;">
+            <h3 style="color: #1e3a8a; font-weight: 800; font-size: 1.15rem; margin-bottom: 6px;" id="txt-pay-head">
+              Step 2: Membership Payment (वार्षिक सदस्यता शुल्क)
+            </h3>
+            <p style="font-size: 0.82rem; color: #475569; margin-bottom: 12px; line-height: 1.5;" id="txt-pay-sub">
+              Scan official Punjab National Bank (PNB) QR code or open UPI App below to pay annual contribution of <strong>₹1,100</strong>
+            </p>
 
-
-          <div class="payment-hero">
-
-            <h3 style="color: #1e3a8a; font-weight: 800; font-size: 1.1rem; margin-bottom: 4px;" id="txt-pay-head">Step
-              2: Membership Payment</h3>
-
-            <p style="font-size: 0.8rem; color: #475569;" id="txt-pay-sub">Scan official PNB QR code or click button
-              below to pay using any UPI App (GPay / PhonePe / Paytm / BHIM)</p>
-
-
-
-            <div class="qr-badge" style="text-align: center; margin: 12px 0;">
-
-              <img id="qr-img-step2" src="/images/qr.jpg" class="qr-code-img" alt="PNB UPI QR Code">
-
+            <!-- QR Code Section with Direct Link to Google Photos -->
+            <div class="qr-badge" style="text-align: center; margin: 12px auto; display: inline-block;">
+              <a href="https://photos.app.goo.gl/Y92M46ZCekXxsSBj7" target="_blank" rel="noopener noreferrer" title="Click to view full size QR code in Google Photos">
+                <img id="qr-img-step2" src="/images/qr.jpg" class="qr-code-img" alt="PNB UPI QR Code" style="max-width: 210px; border-radius: 14px; border: 3px solid #1e3a8a; box-shadow: 0 8px 20px rgba(30, 58, 138, 0.18); cursor: pointer; transition: transform 0.2s;">
+              </a>
+              <div style="margin-top: 8px;">
+                <a href="https://photos.app.goo.gl/Y92M46ZCekXxsSBj7" target="_blank" rel="noopener noreferrer" style="color: #1d4ed8; font-size: 0.84rem; font-weight: 700; text-decoration: underline; display: inline-flex; align-items: center; gap: 5px; background: #dbeafe; padding: 5px 12px; border-radius: 20px;">
+                  🔍 Click to View / Open Official QR (Google Photos)
+                </a>
+              </div>
             </div>
-
-
 
             <!-- Direct Mobile UPI Deep Link -->
-
             <a href="upi://pay?pa=9872620706m@pnb&pn=Naujwan%20Aggarwal%20Welfare%20Society&am=1100&cu=INR"
-              class="upi-direct-btn" id="btn-pay-app">
-
+              class="upi-direct-btn" id="btn-pay-app" style="margin: 10px 0 8px 0; background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 12px; border-radius: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);">
               📲 Open UPI App to Pay ₹1,100 (9872620706m@pnb)
-
             </a>
 
-
-
+            <!-- UPI ID Info with Copy Button -->
             <div class="upi-info"
-              style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
-
-              <span>UPI ID: <strong>9872620706m@pnb</strong></span>
-
+              style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; background: #ffffff; padding: 8px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; margin-top: 6px;">
+              <span>Official QR UPI ID: <strong style="color: #1e3a8a; font-size: 0.96rem; font-family: monospace;">9872620706m@pnb</strong></span>
               <button type="button"
                 onclick="navigator.clipboard.writeText('9872620706m@pnb'); alert('UPI ID copied: 9872620706m@pnb');"
-                style="background:#1e3a8a; color:white; border:none; padding:3px 8px; border-radius:6px; font-size:0.75rem; cursor:pointer; font-weight:700;">📋
-                Copy</button>
-
+                style="background:#1e3a8a; color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.78rem; cursor:pointer; font-weight:700;">
+                📋 Copy UPI ID
+              </button>
             </div>
-
           </div>
-
-
 
           <!-- Official PNB Bank Account Details Card -->
-
-          <div class="input-card" style="border: 1.5px solid #cbd5e1; background: #ffffff; border-radius: 16px;">
-
+          <div class="input-card" style="border: 2px solid #93c5fd; background: #ffffff; border-radius: 16px; margin-top: 14px; box-shadow: 0 4px 14px rgba(30, 58, 138, 0.08); padding: 16px;">
             <div
-              style="font-weight: 800; font-size: 0.95rem; color: #1e3a8a; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
-
-              <div style="display: flex; align-items: center; gap: 6px;">
-
-                <span>🏦</span> <span id="lbl-bank-head">Official Bank Account Details (NEFT / IMPS / RTGS)</span>
-
+              style="font-weight: 800; font-size: 0.98rem; color: #1e3a8a; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.2rem;">🏦</span> <span id="lbl-bank-head">Official Bank Account Details</span>
               </div>
-
               <span
-                style="background: #eff6ff; color: #1d4ed8; padding: 2px 8px; border-radius: 8px; font-size: 0.72rem; font-weight: 800;">PNB
-                CURRENT</span>
-
+                style="background: #1e3a8a; color: #ffffff; padding: 3px 10px; border-radius: 8px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.5px;">PNB CURRENT</span>
             </div>
 
-            <div style="font-size: 0.84rem; color: #1e293b; line-height: 1.75;">
-
-              <div><strong>Account Name:</strong> Naujwan Aggarwal Welfare Society</div>
-
-              <div><strong>Bank Name:</strong> Punjab National Bank (PNB)</div>
-
-              <div><strong>Account No:</strong> <span
-                  style="font-family: monospace; font-size: 0.98rem; font-weight: 800; color: #1e3a8a; background: #f1f5f9; padding: 1px 6px; border-radius: 4px;">5117102100000934</span>
+            <div style="font-size: 0.86rem; color: #1e293b; line-height: 1.9;">
+              <div><strong>Bank Name :-</strong> Punjab National Bank</div>
+              <div><strong>IFSC Code :-</strong> <span
+                  style="font-family: monospace; font-size: 0.98rem; font-weight: 800; color: #1e3a8a; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; border: 1px solid #cbd5e1;">PUNB0511710</span>
+                <button type="button"
+                  onclick="navigator.clipboard.writeText('PUNB0511710'); alert('IFSC Code Copied: PUNB0511710');"
+                  style="background:#f1f5f9; border:1px solid #cbd5e1; padding:2px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer; font-weight:700;">📋 Copy</button>
+              </div>
+              <div><strong>A/c No:-</strong> <span
+                  style="font-family: monospace; font-size: 1.02rem; font-weight: 800; color: #1e3a8a; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; border: 1px solid #cbd5e1;">5117102100000934</span>
                 <button type="button"
                   onclick="navigator.clipboard.writeText('5117102100000934'); alert('Account Number Copied: 5117102100000934');"
-                  style="background:#f1f5f9; border:1px solid #cbd5e1; padding:1px 6px; border-radius:4px; font-size:0.72rem; cursor:pointer;">📋</button>
+                  style="background:#f1f5f9; border:1px solid #cbd5e1; padding:2px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer; font-weight:700;">📋 Copy</button>
               </div>
-
-              <div><strong>Account Type:</strong> Current A/c</div>
-
-              <div><strong>IFSC Code:</strong> <span
-                  style="font-family: monospace; font-weight: 800; color: #1e3a8a; background: #f1f5f9; padding: 1px 6px; border-radius: 4px;">PUNB0511710</span>
-              </div>
-
-              <div><strong>MICR Code:</strong> 144024067</div>
-
-              <div><strong>Branch Code:</strong> 511710</div>
-
-              <div><strong>Branch Name:</strong> Jalandhar- APJ School (Jawahar Nagar)</div>
-
-              <div style="font-size: 0.76rem; color: #64748b; line-height: 1.4; margin-top: 3px;"><strong>Branch
-                  Address:</strong> Near APJ School, JawaharNagar, Bhagwan Mahavir Marg, Jalandhar, Punjab-144004</div>
-
+              <div><strong>Name:-</strong> Naujwan Aggarwal Welfare Society</div>
+              <div><strong>Account Type :-</strong> Current A/c</div>
+              <div><strong>MICR Code:-</strong> 144024067</div>
+              <div><strong>Branch Code:-</strong> 511710</div>
+              <div><strong>Branch Name:-</strong> Jalandhar- APJ School (Jawahar Nagar)</div>
+              <div style="font-size: 0.8rem; color: #64748b; line-height: 1.45; margin-top: 3px;"><strong>Branch Address :-</strong> Near APJ School, JawaharNagar, Bhagwan Mahavir Marg, Jalandhar, Punjab-144004</div>
               <div
-                style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #cbd5e1; color: #059669; font-weight: 700;">
-
-                <strong>UPI ID:</strong> 9872620706m@pnb
-
+                style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #cbd5e1; color: #059669; font-weight: 700; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                <span><strong>UPI ID:</strong> <span style="font-family: monospace; font-size: 0.95rem;">9872620706m@pnb</span></span>
+                <button type="button"
+                  onclick="navigator.clipboard.writeText('9872620706m@pnb'); alert('UPI ID copied: 9872620706m@pnb');"
+                  style="background:#059669; color:white; border:none; padding:3px 10px; border-radius:5px; font-size:0.75rem; cursor:pointer; font-weight:700;">📋 Copy UPI</button>
               </div>
-
             </div>
-
           </div>
-
-
 
           <!-- Amount Paid Input Field -->
-
-          <div class="input-card">
-
-            <label><span id="lbl-amount-paid">Amount Paid (₹)</span> <span class="req">*</span></label>
-
-            <input type="number" id="amountPaid" class="form-input" value="1100" placeholder="1100" required>
-
+          <div class="input-card" style="margin-top: 14px;">
+            <label><span id="lbl-amount-paid">Amount Paid / सदस्यता राशि (₹)</span> <span class="req">*</span></label>
+            <input type="number" id="amountPaid" class="form-input" value="1100" placeholder="1100" required style="font-weight: 700; font-size: 1.05rem; color: #1e3a8a;">
           </div>
 
-
-
-          <!-- Transaction UTR Number -->
-
-          <div class="input-card">
-
-            <label><span id="lbl-utr">Transaction Ref No. / UTR No.</span> <span class="req">*</span></label>
-
-            <input type="text" id="transactionRef" class="form-input" placeholder="Enter 12-digit UTR / Ref Number">
-
+          <!-- Transaction UTR Number / Reference -->
+          <div class="input-card" style="margin-top: 14px;">
+            <label><span id="lbl-utr">Transaction Ref No. / UTR Number</span> <span class="req">*</span></label>
+            <input type="text" id="transactionRef" class="form-input" placeholder="Enter 12-digit UTR / Ref / Transaction Number" maxlength="35" style="font-weight: 600;">
+            <small style="color: #64748b; font-size: 0.74rem; display: block; margin-top: 4px;">(Google Pay, PhonePe, Paytm ya Bank App se mila 12-digit UTR / Ref No. yahan dalein)</small>
           </div>
 
+          <!-- Payer UPI ID / Mobile Number (Confirmation Box) -->
+          <div class="input-card" style="margin-top: 14px;">
+            <label><span id="lbl-payer-upi">Customer Payer UPI ID / Mobile No.</span> <span style="color: #64748b; font-size: 0.75rem;">(वैकल्पिक / Optional)</span></label>
+            <input type="text" id="payerUpiId" class="form-input" placeholder="e.g. 9872620706@paytm ya Customer ki UPI ID">
+            <small style="color: #64748b; font-size: 0.74rem; display: block; margin-top: 4px;">(Customer ne jis UPI ID ya mobile number se payment bheji hai)</small>
+          </div>
 
-
-          <!-- Confirmation Checkbox -->
-
-          <div class="input-card" style="background: #ecfdf5; border-color: #a7f3d0;">
-
-            <label style="display: flex; align-items: center; gap: 10px; margin: 0; cursor: pointer;">
-
-              <input type="checkbox" id="paymentDoneCheck" style="width: 22px; height: 22px; accent-color: #059669;">
-
-              <span style="font-size: 0.88rem; color: #065f46; font-weight: 700;" id="lbl-payment-done">
-
-                Payment done 👍 (I confirm payment is successful)
-
-              </span>
-
+          <!-- Confirmation Checkbox (TICK TO CONFORM PAYMENT OK KAR DI CUSTOMER NE) -->
+          <div class="input-card" style="background: #f0fdf4; border: 2.5px solid #22c55e; border-radius: 14px; margin-top: 16px; padding: 14px; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);">
+            <label style="display: flex; align-items: flex-start; gap: 12px; margin: 0; cursor: pointer;">
+              <input type="checkbox" id="paymentDoneCheck" style="width: 24px; height: 24px; min-width: 24px; accent-color: #16a34a; margin-top: 2px;">
+              <div>
+                <span style="font-size: 0.98rem; color: #15803d; font-weight: 800; display: block;" id="lbl-payment-done">
+                  ✅ Tick to Confirm: Payment Done OK (Customer ne payment kar di hai)
+                </span>
+                <span style="font-size: 0.78rem; color: #166534; display: block; margin-top: 3px; line-height: 1.4;">
+                  I confirm ₹1,100 payment has been completed via QR / UPI (9872620706m@pnb) or Direct Bank Transfer.
+                </span>
+              </div>
             </label>
-
           </div>
 
-
-
-          <div class="bottom-bar">
-
-            <button type="button" class="btn-action btn-submit" onclick="submitFinalForm()">
-
+          <div class="bottom-bar" style="margin-top: 18px;">
+            <button type="button" class="btn-action btn-submit" onclick="submitFinalForm()" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 800;">
               <span id="btn-submit-text">Submit Registration & Payment 👍</span>
-
             </button>
-
             <button type="button" class="btn-back" onclick="skipPaymentAndSubmit()"
-              style="background: #f59e0b; color: white; border: none; font-weight: 700; margin-top: 8px; margin-bottom: 6px;">
-
-              <span id="btn-skip-text">⏭ Skip Payment / Pay Later</span>
-
+              style="background: #f59e0b; color: white; border: none; font-weight: 700; margin-top: 10px; margin-bottom: 8px; width: 100%; padding: 12px; font-size: 0.92rem; border-radius: 12px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.25);">
+              <span id="btn-skip-text">⏭ Skip Payment / Pay Later (Payment Baad Me Karein)</span>
             </button>
-
-            <button type="button" class="btn-back" onclick="backToStep1()" style="margin-bottom: 0;">
-
-              <span id="btn-back-text">⬅ Back to Step 1</span>
-
+            <button type="button" class="btn-back" onclick="backToStep1()" style="margin-bottom: 0; width: 100%; padding: 11px; border-radius: 12px;">
+              <span id="btn-back-text">⬅ Back to Step 1 (फॉर्म पर वापस जाएं)</span>
             </button>
-
           </div>
-
-
 
         </div>
-
-
 
       </form>
 
@@ -3177,7 +3125,7 @@
             <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 12px;">Scan official PNB QR code or click button below to pay ₹1,100 using any UPI App (GPay / PhonePe / Paytm / BHIM):</p>
 
             <div class="qr-badge" style="text-align: center; margin-bottom: 12px;">
-              <img id="qr-img-lookup" src="/images/qr.jpg" class="qr-code-img" alt="PNB UPI QR Code" style="max-width: 180px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <a href="https://photos.app.goo.gl/Y92M46ZCekXxsSBj7" target="_blank" rel="noopener noreferrer"><img id="qr-img-lookup" src="/images/qr.jpg" class="qr-code-img" alt="PNB UPI QR Code" style="max-width: 180px; border-radius: 8px; border: 2px solid #1e3a8a; cursor: pointer;"></a><div style="margin-top: 6px;"><a href="https://photos.app.goo.gl/Y92M46ZCekXxsSBj7" target="_blank" rel="noopener noreferrer" style="color: #1d4ed8; font-size: 0.8rem; font-weight: 700; text-decoration: underline;">🔍 Open Official QR in Google Photos</a></div>
             </div>
 
             <!-- Direct Mobile UPI Deep Link -->
@@ -5170,7 +5118,7 @@
 
         if (!confirmed) {
 
-          alert('Please check "Payment done 👍" box to confirm.');
+          alert('Kripya "Tick to Confirm: Payment Done OK (Customer ne payment kar di hai)" box par tick karein.');
 
           return;
 
@@ -5364,7 +5312,9 @@
 
         paymentMethod: 'UPI',
 
-        transactionRef: utr
+        transactionRef: utr,
+
+        payerUpiId: document.getElementById('payerUpiId') ? document.getElementById('payerUpiId').value.trim() : ''
 
       };
 
