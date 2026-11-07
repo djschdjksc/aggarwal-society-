@@ -543,6 +543,100 @@
         padding: 8px 10px;
       }
     }
+  
+    /* Server-Side Pagination Styles */
+    .pagination-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: #f8fafc;
+      border-top: 1px solid var(--ant-border);
+      gap: 12px;
+    }
+
+    .pagination-info {
+      font-size: 0.85rem;
+      color: var(--ant-text-secondary);
+      font-weight: 500;
+    }
+
+    .pagination-info strong {
+      color: #0f172a;
+    }
+
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .pagination-numbers {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .page-btn {
+      min-width: 32px;
+      height: 32px;
+      padding: 0 8px;
+      border: 1px solid var(--ant-border);
+      background: #ffffff;
+      border-radius: 6px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--ant-text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      border-color: var(--ant-primary);
+      color: var(--ant-primary);
+    }
+
+    .page-btn.active {
+      background: var(--ant-primary);
+      border-color: var(--ant-primary);
+      color: #ffffff;
+    }
+
+    .page-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .page-ellipsis {
+      padding: 0 4px;
+      color: #8c8c8c;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .pagination-size {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--ant-text-secondary);
+    }
+
+    /* Board Member Cards in More Info Modal */
+    .board-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .board-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+    }
+
   </style>
 </head>
 <body>
@@ -584,6 +678,9 @@
     </div>
 
     <div class="nav-actions">
+      <button type="button" class="ant-btn ant-btn-primary" onclick="openMoreInfoModal()" style="background: #1e3a8a; border-color: #1e3a8a; font-weight: 700;">
+        <i class="fa-solid fa-users-viewfinder"></i> More Info / Board Members
+      </button>
       <a href="/" target="_blank" class="ant-btn">
         <i class="fa-solid fa-globe"></i> Open Registration Portal
       </a>
@@ -843,6 +940,15 @@
     }
 
     // Fetch Stats and Members
+    // Pagination State Variables (50 items per page default)
+    let currentPage = 1;
+    let currentLimit = 50;
+    let totalRecords = 0;
+    let totalPages = 1;
+    let searchDebounceTimer = null;
+    let currentMembers = [];
+
+    // Fetch Stats and Members
     function loadDashboardData() {
       // 1. Load Stats
       fetch('/api/admin/stats', {
@@ -859,120 +965,185 @@
       .then(data => {
         if (data.success && data.stats) {
           const s = data.stats;
-          document.getElementById('stat-total-members').textContent = s.totalMembers;
+          document.getElementById('stat-total-members').textContent = Number(s.totalMembers || 0).toLocaleString('en-IN');
           document.getElementById('stat-total-funds').textContent = '₹ ' + (s.totalFundsCollected || 0).toLocaleString('en-IN');
-          document.getElementById('stat-completed-members').textContent = s.completedPayments;
-          document.getElementById('stat-pending-members').textContent = s.pendingPayments;
+          document.getElementById('stat-completed-members').textContent = Number(s.completedPayments || 0).toLocaleString('en-IN');
+          document.getElementById('stat-pending-members').textContent = Number(s.pendingPayments || 0).toLocaleString('en-IN');
           document.getElementById('stat-storage-mode').textContent = s.storageMode;
           document.getElementById('stat-storage-sub').textContent = s.storageMode.includes('MongoDB') ? 'Cloud MongoDB Atlas' : 'Local JSON Storage';
         }
       })
       .catch(err => console.warn(err));
 
-      // 2. Load Members List
-      fetch('/api/admin/members', {
+      // 2. Load Paginated Members (Page 1)
+      fetchMembersPage(1);
+    }
+
+    // Server-Side Paginated Fetch (Optimized for Lakhs of Records)
+    function fetchMembersPage(page = 1) {
+      currentPage = Math.max(1, page);
+      const q = document.getElementById('filter-search').value.trim();
+      const status = document.getElementById('filter-status').value;
+      const consti = document.getElementById('filter-constituency').value;
+
+      const spinner = document.getElementById('page-loading-spinner');
+      if (spinner) spinner.style.display = 'inline-block';
+
+      const tbody = document.getElementById('members-tbody');
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="9" style="text-align: center; padding: 30px;">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.6rem; color: #1677ff;"></i>
+            <div style="margin-top: 8px; color: #64748b; font-size: 0.88rem; font-weight: 600;">
+              Loading page ${currentPage} (50 rows per page)...
+            </div>
+          </td>
+        </tr>
+      `;
+
+      const url = `/api/admin/members?page=${currentPage}&limit=${currentLimit}&search=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}&constituency=${encodeURIComponent(consti)}`;
+
+      fetch(url, {
         headers: { 'x-admin-token': currentAdminToken }
       })
       .then(res => res.json())
       .then(data => {
+        if (spinner) spinner.style.display = 'none';
         if (data.success) {
-          allMembers = data.members || [];
-          applyFilters();
+          currentMembers = data.members || [];
+          allMembers = currentMembers; // reference for modals and actions
+          totalRecords = data.totalCount || 0;
+          totalPages = data.totalPages || 1;
+          renderTable(currentMembers);
+          renderPagination();
+        } else {
+          alert('Error fetching members: ' + (data.message || 'Unknown error'));
         }
       })
       .catch(err => {
+        if (spinner) spinner.style.display = 'none';
         console.error('Error fetching members:', err);
-      });
-    }
-
-    // Apply Client-Side Filter & Search
-    function applyFilters() {
-      const q = document.getElementById('filter-search').value.toLowerCase().trim();
-      const status = document.getElementById('filter-status').value;
-      const consti = document.getElementById('filter-constituency').value;
-
-      const filtered = allMembers.filter(m => {
-        const matchesQ = !q || 
-          (m.fullName && m.fullName.toLowerCase().includes(q)) ||
-          (m.memberId && m.memberId.toString().toLowerCase().includes(q)) ||
-          (m.mobileNo && m.mobileNo.includes(q)) ||
-          (m.fatherHusbandName && m.fatherHusbandName.toLowerCase().includes(q));
-
-        const matchesStatus = (status === 'All') || (m.paymentStatus === status);
-        const matchesConsti = (consti === 'All') || (m.constituency === consti);
-
-        return matchesQ && matchesStatus && matchesConsti;
-      });
-
-      renderTable(filtered);
-    }
-
-    // Render Table Rows
-    function renderTable(members) {
-      const tbody = document.getElementById('members-tbody');
-      if (!members || members.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="9">
-              <div class="empty-state">
-                <i class="fa-regular fa-folder-open"></i>
-                <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 4px;">No Members Found</div>
-                <div style="font-size: 0.82rem;">No member records match the selected filters.</div>
-              </div>
+            <td colspan="9" style="text-align: center; color: #ef4444; padding: 25px;">
+              <i class="fa-solid fa-triangle-exclamation"></i> Error loading page ${currentPage}. <a href="javascript:void(0)" onclick="fetchMembersPage(currentPage)">Click to retry</a>
             </td>
           </tr>
         `;
-        return;
-      }
-
-      tbody.innerHTML = members.map(m => {
-        const isCompleted = m.paymentStatus === 'Completed';
-        const statusBadge = isCompleted
-          ? `<span class="ant-tag tag-completed"><i class="fa-solid fa-circle-check"></i> Completed</span>`
-          : `<span class="ant-tag tag-pending"><i class="fa-solid fa-clock"></i> Pending</span>`;
-
-        const rawId = (m.memberId || '').toString();
-        const formattedId = rawId.toUpperCase().startsWith('NAWS-') ? rawId.toUpperCase() : ('NAWS-' + rawId.padStart(4, '0'));
-        const regDate = m.joiningDate || (m.createdAt ? new Date(m.createdAt).toLocaleDateString('en-GB') : '-');
-
-        return `
-          <tr>
-            <td><span class="ant-tag tag-id">${formattedId}</span></td>
-            <td>
-              <div style="font-weight: 700; color: #0f172a;">${escapeHtml(m.fullName || '-')}</div>
-              <div style="font-size: 0.75rem; color: #64748b;">${m.sex || 'Male'}, ${m.age ? m.age + ' Yrs' : ''}</div>
-            </td>
-            <td>${escapeHtml(m.fatherHusbandName || '-')}</td>
-            <td>
-              <div><a href="tel:${m.mobileNo}" style="color: #1677ff; text-decoration: none; font-weight: 600;"><i class="fa-solid fa-phone" style="font-size: 0.72rem;"></i> ${formatPhone(m.mobileNo)}</a></div>
-              ${m.whatsappNo ? `<div style="font-size: 0.74rem; color: #16a34a;"><i class="fa-brands fa-whatsapp"></i> ${formatPhone(m.whatsappNo)}</div>` : ''}
-            </td>
-            <td>${escapeHtml(m.constituency || '-')}</td>
-            <td style="font-weight: 700;">₹ ${Number(m.amountPaid || 1100).toLocaleString('en-IN')}</td>
-            <td>${statusBadge}</td>
-            <td style="font-size: 0.78rem; color: #64748b;">${regDate}</td>
-            <td>
-              <div class="action-cell">
-                <button type="button" class="ant-btn ant-btn-sm" title="View Full Details" onclick="viewMemberDetails('${m.memberId}')">
-                  <i class="fa-solid fa-eye"></i> View
-                </button>
-                <button type="button" class="ant-btn ant-btn-sm" title="Verify Payment" onclick="openPaymentModal('${m.memberId}')">
-                  <i class="fa-solid fa-receipt"></i> Verify
-                </button>
-                <button type="button" class="ant-btn ant-btn-sm ant-btn-primary" title="Print ID Card" onclick="printCardDirectly('${m.memberId}')">
-                  <i class="fa-solid fa-id-card"></i> Card
-                </button>
-                <button type="button" class="ant-btn ant-btn-sm ant-btn-danger" title="Delete Member" onclick="deleteMember('${m.memberId}', '${escapeHtml(m.fullName)}')">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
+      });
     }
 
-    // Modal: View Member Details
+    // Debounced Search and Instant Filter Handlers
+    function applyFilters() {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        fetchMembersPage(1);
+      }, 300);
+    }
+
+    // Go to Specific Page
+    function goToPage(page) {
+      if (page < 1 || page > totalPages || page === currentPage) return;
+      fetchMembersPage(page);
+    }
+
+    // Change Page Size (25, 50, 100, 200)
+    function changePageSize(newSize) {
+      currentLimit = parseInt(newSize) || 50;
+      fetchMembersPage(1);
+    }
+
+    // Jump to Page Input
+    function jumpToPageInput() {
+      const input = document.getElementById('input-page-jump');
+      const val = parseInt(input.value);
+      if (!val || val < 1 || val > totalPages) {
+        alert(`Please enter a valid page number between 1 and ${totalPages}`);
+        return;
+      }
+      input.value = '';
+      fetchMembersPage(val);
+    }
+
+    // Render Pagination Controls & Page Number Pills
+    function renderPagination() {
+      const start = totalRecords === 0 ? 0 : (currentPage - 1) * currentLimit + 1;
+      const end = Math.min(totalRecords, currentPage * currentLimit);
+
+      document.getElementById('page-start').textContent = Number(start).toLocaleString('en-IN');
+      document.getElementById('page-end').textContent = Number(end).toLocaleString('en-IN');
+      document.getElementById('page-total').textContent = Number(totalRecords).toLocaleString('en-IN');
+
+      const btnFirst = document.getElementById('btn-page-first');
+      const btnPrev = document.getElementById('btn-page-prev');
+      const btnNext = document.getElementById('btn-page-next');
+      const btnLast = document.getElementById('btn-page-last');
+
+      btnFirst.disabled = (currentPage <= 1);
+      btnPrev.disabled = (currentPage <= 1);
+      btnNext.disabled = (currentPage >= totalPages);
+      btnLast.disabled = (currentPage >= totalPages);
+
+      // Render Number Pills (window around currentPage)
+      const container = document.getElementById('pagination-numbers');
+      container.innerHTML = '';
+
+      const maxButtons = 5;
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+      if (endPage - startPage < maxButtons - 1) {
+        startPage = Math.max(1, endPage - maxButtons + 1);
+      }
+
+      if (startPage > 1) {
+        const b1 = document.createElement('button');
+        b1.className = 'page-btn';
+        b1.textContent = '1';
+        b1.onclick = () => goToPage(1);
+        container.appendChild(b1);
+
+        if (startPage > 2) {
+          const el = document.createElement('span');
+          el.className = 'page-ellipsis';
+          el.textContent = '...';
+          container.appendChild(el);
+        }
+      }
+
+      for (let p = startPage; p <= endPage; p++) {
+        const b = document.createElement('button');
+        b.className = 'page-btn' + (p === currentPage ? ' active' : '');
+        b.textContent = p;
+        b.onclick = () => goToPage(p);
+        container.appendChild(b);
+      }
+
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          const el = document.createElement('span');
+          el.className = 'page-ellipsis';
+          el.textContent = '...';
+          container.appendChild(el);
+        }
+
+        const bLast = document.createElement('button');
+        bLast.className = 'page-btn';
+        bLast.textContent = totalPages;
+        bLast.onclick = () => goToPage(totalPages);
+        container.appendChild(bLast);
+      }
+    }
+
+    // Modal: Open / Close More Info (Board Members)
+    function openMoreInfoModal() {
+      document.getElementById('more-info-modal').classList.remove('hidden');
+    }
+
+    function closeMoreInfoModal() {
+      document.getElementById('more-info-modal').classList.add('hidden');
+    }
+
     function viewMemberDetails(memberId) {
       const m = allMembers.find(item => item.memberId === memberId);
       if (!m) return;
@@ -1221,21 +1392,266 @@
             body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; margin: 0; font-family: sans-serif; background: #f8fafc; }
             img { width: 85.6mm; height: 36.6mm; border-radius: 3.18mm; border: 1px solid #cbd5e1; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
             @media print { body { background: white; } img { box-shadow: none; } }
-          </style></head><body>
+          
+    /* Server-Side Pagination Styles */
+    .pagination-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: #f8fafc;
+      border-top: 1px solid var(--ant-border);
+      gap: 12px;
+    }
+
+    .pagination-info {
+      font-size: 0.85rem;
+      color: var(--ant-text-secondary);
+      font-weight: 500;
+    }
+
+    .pagination-info strong {
+      color: #0f172a;
+    }
+
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .pagination-numbers {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .page-btn {
+      min-width: 32px;
+      height: 32px;
+      padding: 0 8px;
+      border: 1px solid var(--ant-border);
+      background: #ffffff;
+      border-radius: 6px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--ant-text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      border-color: var(--ant-primary);
+      color: var(--ant-primary);
+    }
+
+    .page-btn.active {
+      background: var(--ant-primary);
+      border-color: var(--ant-primary);
+      color: #ffffff;
+    }
+
+    .page-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .page-ellipsis {
+      padding: 0 4px;
+      color: #8c8c8c;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .pagination-size {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--ant-text-secondary);
+    }
+
+    /* Board Member Cards in More Info Modal */
+    .board-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .board-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+    }
+
+  </style></head><body>
           <div style="text-align: center;">
             <img src="${dataUrl}">
             <p style="margin-top: 10px; font-size: 13px; color: #475569; font-weight: 600;">Naujwan Aggarwal Welfare Society (Reg.) Jalandhar • Official ID Card</p>
           </div>
           <script>setTimeout(function() { window.print(); }, 400);<\/script>
-          </body></html>
+          
+  <!-- Modal: More Info & Board Member Details -->
+  <div id="more-info-modal" class="ant-modal hidden">
+    <div class="ant-modal-content" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+      <div class="ant-modal-header" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: white; border-radius: 8px 8px 0 0; padding: 18px 22px;">
+        <div>
+          <div style="font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-landmark"></i> Naujwan Aggarwal Welfare Society (Reg.), Jalandhar
+          </div>
+          <div style="font-size: 0.85rem; color: #dbeafe; margin-top: 4px; font-weight: 600;">
+            Board Member Details (कार्यकारिणी एवं पदाधिकारी सूची)
+          </div>
+        </div>
+        <button type="button" class="ant-modal-close" onclick="closeMoreInfoModal()" style="color: white; font-size: 1.3rem; background: transparent; border: none; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="ant-modal-body" style="padding: 22px;">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; font-size: 0.85rem; color: #1e3a8a; line-height: 1.5;">
+          <strong>Naujwan Aggarwal Welfare Society (Regd.), Jalandhar</strong> is dedicated to the social welfare, youth empowerment, community development, and healthcare assistance for the Aggarwal community. Below is the list of official Board of Directors and Executive Office Bearers.
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+          
+          <!-- 1. Parveen Aggarwal - Chairman -->
+          <div class="board-card" style="border: 2px solid #fbbf24; background: #fffdf5; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15);">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #fef3c7; color: #b45309; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: 800; flex-shrink: 0;">👑</div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.05rem; color: #0f172a;">Parveen Aggarwal</div>
+              <span style="background: #f59e0b; color: #ffffff; font-weight: 800; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px; letter-spacing: 0.4px;">Chairman</span>
+            </div>
+          </div>
+
+          <!-- 2. Pawan Kumar Goel - Vice-Chairman -->
+          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #f8fafc; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user-tie"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Pawan Kumar Goel</div>
+              <span style="background: #475569; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Vice-Chairman</span>
+            </div>
+          </div>
+
+          <!-- 3. Chandan Goel - President -->
+          <div class="board-card" style="border: 2px solid #3b82f6; background: #eff6ff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #dbeafe; color: #1d4ed8; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-crown"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.05rem; color: #0f172a;">Chandan Goel</div>
+              <span style="background: #2563eb; color: #ffffff; font-weight: 800; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px; letter-spacing: 0.4px;">President</span>
+            </div>
+          </div>
+
+          <!-- 4. Mahesh Garg - Vice-President -->
+          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #f8fafc; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user-tie"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Mahesh Garg</div>
+              <span style="background: #475569; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Vice-President</span>
+            </div>
+          </div>
+
+          <!-- 5. Vishal Gupta - General Secretary -->
+          <div class="board-card" style="border: 1.5px solid #93c5fd; background: #ffffff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-pen-nib"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Vishal Gupta</div>
+              <span style="background: #0284c7; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">General Secretary</span>
+            </div>
+          </div>
+
+          <!-- 6. Hitesh Goyal - Treasurer -->
+          <div class="board-card" style="border: 1.5px solid #86efac; background: #f0fdf4; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-coins"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Hitesh Goyal</div>
+              <span style="background: #16a34a; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Treasurer</span>
+            </div>
+          </div>
+
+          <!-- 7. Mahesh Garg - Co-Ordinator -->
+          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #f8fafc; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-network-wired"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Mahesh Garg</div>
+              <span style="background: #64748b; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Co-Ordinator</span>
+            </div>
+          </div>
+
+          <!-- 8. Manav Bansal - Board Member -->
+          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #ffffff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Manav Bansal</div>
+              <span style="background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Board Member</span>
+            </div>
+          </div>
+
+          <!-- 9. Brij Mohan Gupta - Board Member -->
+          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #ffffff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Brij Mohan Gupta</div>
+              <span style="background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Board Member</span>
+            </div>
+          </div>
+
+          <!-- 10. Shubham Goyal - Board Member -->
+          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #ffffff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Shubham Goyal</div>
+              <span style="background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Board Member</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="ant-modal-footer" style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.8rem; color: #64748b;">Naujwan Aggarwal Welfare Society (Reg.), Jalandhar</span>
+        <button type="button" class="ant-btn ant-btn-primary" onclick="closeMoreInfoModal()">Done / Close</button>
+      </div>
+    </div>
+  </div>
+
+</body></html>
         `);
         printWin.document.close();
       };
     }
 
-    // Export to CSV Function
-    function exportToCsv() {
-      if (allMembers.length === 0) {
+    // Export to CSV Function (Exports All Matching Records from Server)
+    async function exportToCsv() {
+      const q = document.getElementById('filter-search').value.trim();
+      const status = document.getElementById('filter-status').value;
+      const consti = document.getElementById('filter-constituency').value;
+
+      const btn = event ? (event.currentTarget || event.target) : document.querySelector('button[onclick="exportToCsv()"]');
+      let origHtml = '';
+      if (btn) {
+        origHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Exporting All...';
+        btn.disabled = true;
+      }
+
+      let exportList = [];
+      try {
+        const url = `/api/admin/members?all=true&search=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}&constituency=${encodeURIComponent(consti)}`;
+        const res = await fetch(url, { headers: { 'x-admin-token': currentAdminToken } });
+        const data = await res.json();
+        exportList = (data.success && data.members) ? data.members : currentMembers;
+      } catch (err) {
+        console.error('Export fetch failed:', err);
+        exportList = currentMembers;
+      } finally {
+        if (btn) {
+          btn.innerHTML = origHtml;
+          btn.disabled = false;
+        }
+      }
+
+      if (!exportList || exportList.length === 0) {
         alert('No member records to export.');
         return;
       }
@@ -1296,6 +1712,129 @@
         .replace(/"/g, '&quot;');
     }
   </script>
+
+  <!-- Modal: More Info & Board Member Details -->
+  <div id="more-info-modal" class="ant-modal hidden">
+    <div class="ant-modal-content" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+      <div class="ant-modal-header" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: white; border-radius: 8px 8px 0 0; padding: 18px 22px;">
+        <div>
+          <div style="font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-landmark"></i> Naujwan Aggarwal Welfare Society (Reg.), Jalandhar
+          </div>
+          <div style="font-size: 0.85rem; color: #dbeafe; margin-top: 4px; font-weight: 600;">
+            Board Member Details (कार्यकारिणी एवं पदाधिकारी सूची)
+          </div>
+        </div>
+        <button type="button" class="ant-modal-close" onclick="closeMoreInfoModal()" style="color: white; font-size: 1.3rem; background: transparent; border: none; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="ant-modal-body" style="padding: 22px;">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; font-size: 0.85rem; color: #1e3a8a; line-height: 1.5;">
+          <strong>Naujwan Aggarwal Welfare Society (Regd.), Jalandhar</strong> is dedicated to the social welfare, youth empowerment, community development, and healthcare assistance for the Aggarwal community. Below is the list of official Board of Directors and Executive Office Bearers.
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+          
+          <!-- 1. Parveen Aggarwal - Chairman -->
+          <div class="board-card" style="border: 2px solid #fbbf24; background: #fffdf5; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15);">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #fef3c7; color: #b45309; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: 800; flex-shrink: 0;">👑</div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.05rem; color: #0f172a;">Parveen Aggarwal</div>
+              <span style="background: #f59e0b; color: #ffffff; font-weight: 800; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px; letter-spacing: 0.4px;">Chairman</span>
+            </div>
+          </div>
+
+          <!-- 2. Pawan Kumar Goel - Vice-Chairman -->
+          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #f8fafc; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user-tie"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Pawan Kumar Goel</div>
+              <span style="background: #475569; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Vice-Chairman</span>
+            </div>
+          </div>
+
+          <!-- 3. Chandan Goel - President -->
+          <div class="board-card" style="border: 2px solid #3b82f6; background: #eff6ff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #dbeafe; color: #1d4ed8; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-crown"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.05rem; color: #0f172a;">Chandan Goel</div>
+              <span style="background: #2563eb; color: #ffffff; font-weight: 800; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px; letter-spacing: 0.4px;">President</span>
+            </div>
+          </div>
+
+          <!-- 4. Mahesh Garg - Vice-President -->
+          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #f8fafc; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user-tie"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Mahesh Garg</div>
+              <span style="background: #475569; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Vice-President</span>
+            </div>
+          </div>
+
+          <!-- 5. Vishal Gupta - General Secretary -->
+          <div class="board-card" style="border: 1.5px solid #93c5fd; background: #ffffff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-pen-nib"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Vishal Gupta</div>
+              <span style="background: #0284c7; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">General Secretary</span>
+            </div>
+          </div>
+
+          <!-- 6. Hitesh Goyal - Treasurer -->
+          <div class="board-card" style="border: 1.5px solid #86efac; background: #f0fdf4; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-coins"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Hitesh Goyal</div>
+              <span style="background: #16a34a; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Treasurer</span>
+            </div>
+          </div>
+
+          <!-- 7. Mahesh Garg - Co-Ordinator -->
+          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #f8fafc; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-network-wired"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Mahesh Garg</div>
+              <span style="background: #64748b; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Co-Ordinator</span>
+            </div>
+          </div>
+
+          <!-- 8. Manav Bansal - Board Member -->
+          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #ffffff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Manav Bansal</div>
+              <span style="background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Board Member</span>
+            </div>
+          </div>
+
+          <!-- 9. Brij Mohan Gupta - Board Member -->
+          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #ffffff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Brij Mohan Gupta</div>
+              <span style="background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Board Member</span>
+            </div>
+          </div>
+
+          <!-- 10. Shubham Goyal - Board Member -->
+          <div class="board-card" style="border: 1.5px solid #cbd5e1; background: #ffffff; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 46px; height: 46px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0;"><i class="fa-solid fa-user"></i></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1.02rem; color: #0f172a;">Shubham Goyal</div>
+              <span style="background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.72rem; padding: 2px 10px; border-radius: 6px; display: inline-block; margin-top: 3px;">Board Member</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="ant-modal-footer" style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.8rem; color: #64748b;">Naujwan Aggarwal Welfare Society (Reg.), Jalandhar</span>
+        <button type="button" class="ant-btn ant-btn-primary" onclick="closeMoreInfoModal()">Done / Close</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
 

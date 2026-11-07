@@ -51,4 +51,8 @@ const memberSchema = new mongoose.Schema({
   strict: false
 });
 
+memberSchema.index({ createdAt: -1 });
+memberSchema.index({ fullName: 1 });
+memberSchema.index({ constituency: 1 });
+
 module.exports = mongoose.model('Member', memberSchema);

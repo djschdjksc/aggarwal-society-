@@ -230,45 +230,80 @@ app.put('/api/members/:id/payment', async (req, res) => {
   }
 });
 
-// 5. Admin: List All Members (with status filter, search, sorting)
+// 5. Admin: Paginated & Filtered Members List (Optimized for Lakhs of Records)
 app.get('/api/admin/members', requireAdmin, async (req, res) => {
   try {
     const { status, search, constituency } = req.query;
+    const isExport = req.query.all === 'true';
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = isExport ? 100000 : Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
 
+    let totalCount = 0;
     let list = [];
+
     if (isMongoConnected) {
       let filter = {};
       if (status && status !== 'All') filter.paymentStatus = status;
       if (constituency && constituency !== 'All') filter.constituency = constituency;
       if (search) {
         const cleanS = search.replace(/\D/g, '');
+        const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
         filter.$or = [
-          { fullName: { $regex: search, $options: 'i' } },
-          { memberId: { $regex: search, $options: 'i' } },
-          { mobileNo: { $regex: cleanS || search, $options: 'i' } }
+          { fullName: searchRegex },
+          { memberId: searchRegex },
+          { fatherHusbandName: searchRegex },
+          { transactionRef: searchRegex }
         ];
+        if (cleanS) {
+          filter.$or.push({ mobileNo: new RegExp(cleanS, 'i') });
+        }
       }
-      list = await Member.find(filter).sort({ createdAt: -1 });
+
+      totalCount = await Member.countDocuments(filter);
+
+      let query = Member.find(filter)
+        .sort({ createdAt: -1 });
+
+      if (!isExport) {
+        query = query.skip(skip).limit(limit);
+      }
+
+      list = await query.lean();
     } else {
-      list = getLocalMembers();
+      let all = getLocalMembers();
       if (status && status !== 'All') {
-        list = list.filter(m => m.paymentStatus === status);
+        all = all.filter(m => m.paymentStatus === status);
       }
       if (constituency && constituency !== 'All') {
-        list = list.filter(m => m.constituency === constituency);
+        all = all.filter(m => m.constituency === constituency);
       }
       if (search) {
         const s = search.toLowerCase();
-        list = list.filter(m => 
+        all = all.filter(m => 
           (m.fullName && m.fullName.toLowerCase().includes(s)) ||
           (m.memberId && m.memberId.toString().includes(s)) ||
-          (m.mobileNo && m.mobileNo.includes(s))
+          (m.mobileNo && m.mobileNo.includes(s)) ||
+          (m.fatherHusbandName && m.fatherHusbandName.toLowerCase().includes(s)) ||
+          (m.transactionRef && m.transactionRef.toLowerCase().includes(s))
         );
       }
-      list.reverse();
+      all.reverse();
+      totalCount = all.length;
+      list = isExport ? all : all.slice(skip, skip + limit);
     }
 
-    return res.json({ success: true, count: list.length, members: list });
+    const totalPages = Math.ceil(totalCount / limit) || 1;
+
+    return res.json({
+      success: true,
+      count: list.length,
+      totalCount,
+      page,
+      limit,
+      totalPages,
+      members: list
+    });
   } catch (err) {
     console.error('Admin members error:', err);
     return res.status(500).json({ success: false, message: err.message });
