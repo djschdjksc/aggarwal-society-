@@ -1444,7 +1444,6 @@
         fatherHusbandName: 'Sh. Ram Lal Goel',
         dob: '15-11-1990',
         age: '36 Yrs',
-        mobileNo: '9872620706',
         designation: 'Member',
         joiningDate: '01-01-2025',
         validityUpto: '31-12-2026'
@@ -1483,16 +1482,6 @@
         const formattedAge = rawAge.toLowerCase().includes('yr') ? rawAge : (rawAge + ' Yrs');
         const dobAge = rawDob + ' (' + formattedAge + ')';
 
-        let mobile = '';
-        const rawMobile = (member.mobileNo ? member.mobileNo.toString().trim() : '');
-        if (rawMobile.length >= 10) {
-          mobile = formatPhone(rawMobile) + (rawId ? (' / ' + rawId) : '');
-        } else if (rawMobile) {
-          mobile = rawMobile;
-        } else {
-          mobile = '98726-20706 / ' + rawId;
-        }
-
         const designation = member.designation || 'Member';
         const joiningDate = member.joiningDate || '01-01-2025';
         const validityUpto = member.validityUpto || '31-12-2026';
@@ -1500,8 +1489,8 @@
         const startX = 50;
         const colonX = 225;
         const valX = 245;
-        const startY = 175;
-        const gapY = 31;
+        const startY = 200; // Moved slightly lower
+        const gapY = 33;
 
         function drawRow(rowIdx, label, value, valColor, isBold) {
           const y = startY + (rowIdx * gapY);
@@ -1519,24 +1508,23 @@
         drawRow(1, 'Membership No.', formattedId, '#b45309', true);
         drawRow(2, 'Father / Hus.', fatherName, '#0f172a', false);
         drawRow(3, 'DOB & Age', dobAge, '#0f172a', false);
-        drawRow(4, 'Mobile No.', mobile, '#0f172a', false);
-        drawRow(5, 'Designation', designation, '#059669', true);
+        drawRow(4, 'Designation', designation, '#059669', true);
 
-        // Row 6: Joining Date and Valid Upto side-by-side
-        const y6 = startY + (6 * gapY);
+        // Row 5: Joining Date and Valid Upto side-by-side
+        const y5 = startY + (5 * gapY);
         ctx.fillStyle = '#1e3a8a';
         ctx.font = 'bold 20px Arial, "Segoe UI", sans-serif';
-        ctx.fillText('Joining Date', startX, y6);
-        ctx.fillText(':', colonX, y6);
+        ctx.fillText('Joining Date', startX, y5);
+        ctx.fillText(':', colonX, y5);
         ctx.fillStyle = '#0f172a';
         ctx.font = 'bold 20px Arial, "Segoe UI", sans-serif';
-        ctx.fillText(joiningDate, valX, y6);
+        ctx.fillText(joiningDate, valX, y5);
 
         ctx.fillStyle = '#b91c1c';
         ctx.font = 'bold 20px Arial, "Segoe UI", sans-serif';
-        ctx.fillText('Valid Upto', 385, y6);
-        ctx.fillText(':', 495, y6);
-        ctx.fillText(validityUpto, 510, y6);
+        ctx.fillText('Valid Upto', 385, y5);
+        ctx.fillText(':', 495, y5);
+        ctx.fillText(validityUpto, 510, y5);
 
         // Open Printable Window
         const dataUrl = canvas.toDataURL('image/png');
